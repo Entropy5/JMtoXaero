@@ -4,6 +4,8 @@ import xaero.map.region.BranchLeveledRegion;
 import xaero.map.region.LeveledRegion;
 import xaero.map.region.Overlay;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,16 +15,31 @@ import java.util.Random;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+/**
+ * Converter for Journeymap data to Xaero format
+ * Based mostly on the decompiled code of xaero.map.file.MapSaveLoad
+ * Written by IronException and Negative_Entropy
+ */
+
 public class JourneyMapToXaero {
 
     private File getFile(final IronMapRegion region) {
-        return new File();
+        return new File("C:\\Users\\mcmic\\Downloads\\Xaro.zip");
     }
 
     private static Random random = new Random();
 
     public static void main(final String[] args) {
-        //xaero.map.WorldMap.settings.debug = true;
+
+        try {
+            BufferedImage image = ImageIO.read(new File("C:\\Users\\mcmic\\Downloads\\76,55.png"));
+            System.out.println(image.getRGB(0, 0));
+            System.out.println(image.getRGB(511, 511));
+
+        } catch(IOException exc) {
+            System.out.println("IoException");
+        }
+
 
 
         //new JourneyMapToXaero().saveRegion(new MapRegion("worldId", "dimId", "mwId", null, 0, 0, 0, true), 0);
@@ -34,24 +51,12 @@ public class JourneyMapToXaero {
     private static class IronMapRegion {
 
 
-        public boolean hasHadTerrain() {
-            return true;
-        }
-
-        public int countChunks() {
-            return 10; // TODO
-        }
-
-        public boolean isMultiplayer() {
-            return true;
-        }
-
         public IronChunk getChunk(final int x, final int z) {
             return new IronChunk();
         }
 
         public void setChunk(final int o, final int p, final IronChunk mapTileChunk) {
-            System.out.println("ok what do I do with chunkj at " + o + " " + p);
+            System.out.println("ok what do I do with chunk at " + o + " " + p);
             // drop it
         }
 
@@ -67,7 +72,7 @@ public class JourneyMapToXaero {
         }
 
         public boolean hasHighlightsIfUndiscovered() {
-            return false; // TODO notsure baout htht
+            return false; // TODO not sure about that
         }
 
         public LeveledRegion getLeafTexture() {
@@ -111,17 +116,14 @@ public class JourneyMapToXaero {
         }
 
 
-        public int getParametres() {
+        public int getParameters() {
             final int colourTypeToWrite = this.colourType < 0 ? 0 : this.colourType & 3;
-            int parametres = (!this.isGrass() ? 1 : 0);
-            parametres |= this.getNumberOfOverlays() != 0 ? 2 : 0;
-            parametres |= colourTypeToWrite << 2;
-            //parametres |= this.caveBlock ? 128 : 0;
-            //parametres |= this.light << 8;
-            //parametres |= this.getHeight() << 12;
-            parametres |= this.biome != -1 ? 1048576 : 0;
-            //parametres |= this.signed_height != this.signed_topHeight ? 16777216 : 0;
-            return parametres;
+            int parameters = 1;
+            parameters |= this.getNumberOfOverlays() != 0 ? 2 : 0;
+            parameters |= colourTypeToWrite << 2;
+            parameters |= this.biome != -1 ? 1048576 : 0;
+            // ignoring grass (false), cave block (false), light (0), height (0), signed height (0)
+            return parameters;
         }
 
         public boolean isGrass() {
@@ -160,119 +162,101 @@ public class JourneyMapToXaero {
 
     public boolean saveRegion(final IronMapRegion region, final int extraAttempts) {
         try {
-            if (!region.hasHadTerrain()) {
-                //  if (xaero.map.WorldMap.settings.debug) {
-                //System.out.println("Save not required for highlight-only region: " + region + " " + region.getWorldId() + " " + region.getDimId());
-                // }
+            final File permFile = getFile(region);
+            final File file = getTempFile(permFile);
+            if (!file.exists()) {
+                file.createNewFile();
+            }
 
-                return region.countChunks() > 0;
-            } else if (!region.isMultiplayer()) {
-                //if (xaero.map.WorldMap.settings.debug) {
-                //System.out.println("Save not required for singleplayer: " + region + " " + region.getWorldId() + " " + region.getDimId());
-                // }
+            boolean regionIsEmpty = true;
+            DataOutputStream out = null;
 
-                return region.countChunks() > 0;
-            } else {
-                final File permFile = getFile(region);
-                final File file = getTempFile(permFile);
-                if (file == null) {
-                    return true;
-                } else {
-                    if (!file.exists()) {
-                        file.createNewFile();
+            try {
+                final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
+                out = new DataOutputStream(zipOut);
+                final ZipEntry e = new ZipEntry("region.xaero");
+                zipOut.putNextEntry(e);
+                out.write(255);
+                out.writeInt(4);
+                int o = 0;
+
+                while (true) {
+                    if (o >= 8) {
+                        zipOut.closeEntry();
+                        break;
                     }
 
-                    boolean regionIsEmpty = true;
-                    DataOutputStream out = null;
+                    for (int p = 0; p < 8; ++p) {
+                        final IronChunk chunk = region.getChunk(o, p);
+                        if (chunk != null) {
+                            if (!chunk.includeInSave()) {
+                                if (!chunk.hasHighlightsIfUndiscovered()) {
+                                    region.setChunk(o, p, (IronChunk) null);
+                                    synchronized (chunk) {
+                                        chunk.getLeafTexture().deleteTexturesAndBuffers();
+                                    }
+                                }
 
-                    try {
-                        final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
-                        out = new DataOutputStream(zipOut);
-                        final ZipEntry e = new ZipEntry("region.xaero");
-                        zipOut.putNextEntry(e);
-                        out.write(255);
-                        out.writeInt(4);
-                        int o = 0;
+                                final BranchLeveledRegion parentRegion = region.getParent();
+                                if (parentRegion != null) {
+                                    parentRegion.setShouldCheckForUpdatesRecursive(true);
+                                }
+                            } else {
+                                out.write(o << 4 | p);
+                                boolean chunkIsEmpty = true;
 
-                        while (true) {
-                            if (o >= 8) {
-                                zipOut.closeEntry();
-                                break;
-                            }
+                                for (int i = 0; i < 4; ++i) {
+                                    for (int j = 0; j < 4; ++j) {
+                                        final IronTile tile = chunk.getTile(i, j);
+                                        if (tile != null && tile.isLoaded()) {
+                                            chunkIsEmpty = false;
 
-                            for (int p = 0; p < 8; ++p) {
-                                final IronChunk chunk = region.getChunk(o, p);
-                                if (chunk != null) {
-                                    if (!chunk.includeInSave()) {
-                                        if (!chunk.hasHighlightsIfUndiscovered()) {
-                                            region.setChunk(o, p, (IronChunk) null);
-                                            synchronized (chunk) {
-                                                chunk.getLeafTexture().deleteTexturesAndBuffers();
-                                            }
-                                        }
+                                            for (int x = 0; x < 16; ++x) {
+                                                final IronBlock[] c = tile.getBlockColumn(x);
 
-                                        final BranchLeveledRegion parentRegion = region.getParent();
-                                        if (parentRegion != null) {
-                                            parentRegion.setShouldCheckForUpdatesRecursive(true);
-                                        }
-                                    } else {
-                                        out.write(o << 4 | p);
-                                        boolean chunkIsEmpty = true;
-
-                                        for (int i = 0; i < 4; ++i) {
-                                            for (int j = 0; j < 4; ++j) {
-                                                final IronTile tile = chunk.getTile(i, j);
-                                                if (tile != null && tile.isLoaded()) {
-                                                    chunkIsEmpty = false;
-
-                                                    for (int x = 0; x < 16; ++x) {
-                                                        final IronBlock[] c = tile.getBlockColumn(x);
-
-                                                        for (int z = 0; z < 16; ++z) {
-                                                            this.savePixel(c[z], out);
-                                                        }
-                                                    }
-
-                                                    out.write(tile.getWorldInterpretationVersion());
-                                                } else {
-                                                    out.writeInt(-1);
+                                                for (int z = 0; z < 16; ++z) {
+                                                    this.savePixel(c[z], out);
                                                 }
                                             }
-                                        }
 
-                                        if (!chunkIsEmpty) {
-                                            regionIsEmpty = false;
+                                            out.write(tile.getWorldInterpretationVersion());
+                                        } else {
+                                            out.writeInt(-1);
                                         }
                                     }
                                 }
+
+                                if (!chunkIsEmpty) {
+                                    regionIsEmpty = false;
+                                }
                             }
-
-                            ++o;
                         }
-                    } finally {
-                        if (out != null) {
-                            out.close();
-                        }
-
                     }
 
-                    if (regionIsEmpty) {
-                        this.safeDelete(permFile.toPath(), ".zip");
-                        this.safeDelete(file.toPath(), ".temp");
-                        //    if (xaero.map.WorldMap.settings.debug) {
-                        System.out.println("Save cancelled because the region is empty: " + region /**+ " " + region.getWorldId() + " " + region.getDimId() + " " + region.getMwId()*/);
-                        //   }
-
-                        return false;
-                    } else {
-                        this.safeMoveAndReplace(file.toPath(), permFile.toPath(), ".temp", ".zip");
-                        //      if (xaero.map.WorldMap.settings.debug) {
-                        System.out.println("Region saved: " + region + " " /**+ region.getWorldId() + " " + region.getDimId() + " " + region.getMwId() + ", " *+ this.mapProcessor.getMapWriter().getUpdateCounter()*/);
-                        // }
-
-                        return true;
-                    }
+                    ++o;
                 }
+            } finally {
+                if (out != null) {
+                    out.close();
+                }
+
+            }
+
+            if (regionIsEmpty) {
+                this.safeDelete(permFile.toPath(), ".zip");
+                this.safeDelete(file.toPath(), ".temp");
+                //    if (xaero.map.WorldMap.settings.debug) {
+                System.out.println("Save cancelled because the region is empty: " + region /**+ " " + region.getWorldId() + " " + region.getDimId() + " " + region.getMwId()*/);
+                //   }
+
+                return false;
+            } else {
+                this.safeMoveAndReplace(file.toPath(), permFile.toPath(), ".temp", ".zip");
+                //      if (xaero.map.WorldMap.settings.debug) {
+                System.out.println("Region saved: " + region + " " /**+ region.getWorldId() + " " + region.getDimId() + " " + region.getMwId() + ", " *+ this.mapProcessor.getMapWriter().getUpdateCounter()*/);
+                // }
+
+                return true;
             }
         } catch (final IOException var28) {
             System.out.println("IO exception while trying to save " + region
@@ -314,7 +298,7 @@ public class JourneyMapToXaero {
     }
 
     private void savePixel(final IronBlock pixel, final DataOutputStream out) throws IOException {
-        final int parametres = pixel.getParametres();
+        final int parametres = pixel.getParameters();
         out.writeInt(parametres);
         if (!pixel.isGrass()) {
             out.writeInt(pixel.getState());
