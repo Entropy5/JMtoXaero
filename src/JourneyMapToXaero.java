@@ -8,7 +8,6 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -35,10 +34,9 @@ public class JourneyMapToXaero {
                         int rx = Integer.parseInt(parts[0]);
                         int rz = Integer.parseInt(parts[1]);
                         String zipName = rx + "_" + rz + ".zip";
-                        File zipFile = new File(String.valueOf(Paths.get(file.getParent()).resolve(zipName)));
+                        File zipFile = file.toPath().getParent().resolve(zipName).toFile();
                         System.out.println(zipFile);
-
-                        BufferedImage image = ImageIO.read(file);
+                        BufferedImage image = ImageIO.read(file);  // JourneyMap image IN
                         new JourneyMapToXaero().saveRegion(new IronMapRegion(image), zipFile, 0);
 
                     } catch(Exception e) {
@@ -57,11 +55,11 @@ public class JourneyMapToXaero {
         public IronMapRegion(BufferedImage jmImage) {
             this.image = jmImage;
         }
-        public IronChunk getChunk(final int x, final int z) {
+        public IronChunk getChunk() {
             return new IronChunk();
         }
 
-        public void setChunk(final int o, final int p, final IronChunk mapTileChunk) {
+        public void setChunk(final int o, final int p) {
             System.out.println("ok what do I do with chunk at " + o + " " + p);
             // drop it
         }
@@ -95,18 +93,6 @@ public class JourneyMapToXaero {
 
         public boolean isLoaded() {
             return true;
-        }
-
-        public IronBlock getBlock(final int x, final int z) {
-            return new IronBlock(13876760);
-        }
-
-        public IronBlock[] getBlockColumn(final int x) {
-            final IronBlock[] resul = new IronBlock[16];
-            for (int i = 0; i < 16; i++) {
-                resul[i] = new IronBlock(-13876760);
-            }
-            return resul;
         }
 
         public int getWorldInterpretationVersion() {
@@ -191,11 +177,11 @@ public class JourneyMapToXaero {
                         break;
                     }
                     for (int p = 0; p < 8; ++p) {
-                        final IronChunk chunk = region.getChunk(o, p);
+                        final IronChunk chunk = region.getChunk();
                         if (chunk != null) {
                             if (!chunk.includeInSave()) {
                                 if (!chunk.hasHighlightsIfUndiscovered()) {
-                                    region.setChunk(o, p, (IronChunk) null);
+                                    region.setChunk(o, p);
                                     synchronized (chunk) {
                                         chunk.getLeafTexture().deleteTexturesAndBuffers();
                                     }
