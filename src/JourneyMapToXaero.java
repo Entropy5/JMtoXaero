@@ -28,7 +28,7 @@ public class JourneyMapToXaero {
     public static void main(final String[] args) {
 
         try {
-            BufferedImage image = ImageIO.read(new File("C:\\Users\\mcmic\\Downloads\\0,0.png"));
+            BufferedImage image = ImageIO.read(new File("C:\\Users\\mcmic\\Downloads\\-1,-1.png"));
             System.out.println(image.getRGB(0, 0));
             System.out.println(image.getRGB(511, 511));
             new JourneyMapToXaero().saveRegion(new IronMapRegion(image), 0);
@@ -86,6 +86,10 @@ public class JourneyMapToXaero {
 
         public boolean isLoaded() {
             return true;
+        }
+
+        public IronBlock getBlock(final int x, final int z) {
+            return new IronBlock(13876760);
         }
 
         public IronBlock[] getBlockColumn(final int x) {
@@ -173,16 +177,15 @@ public class JourneyMapToXaero {
                 out = new DataOutputStream(zipOut);
                 final ZipEntry e = new ZipEntry("region.xaero");
                 zipOut.putNextEntry(e);
-                out.write(255);
+                out.write(255);  // Black box logic from Xaero format and code
                 out.writeInt(4);
                 int o = 0;
 
                 while (true) {
-                    if (o >= 8) {
+                    if (o >= 8) {  // A Region consists of 8 x 8 TileChunks, each size 64
                         zipOut.closeEntry();
                         break;
                     }
-
                     for (int p = 0; p < 8; ++p) {
                         final IronChunk chunk = region.getChunk(o, p);
                         if (chunk != null) {
@@ -209,10 +212,13 @@ public class JourneyMapToXaero {
                                             chunkIsEmpty = false;
 
                                             for (int x = 0; x < 16; ++x) {
-                                                final IronBlock[] c = tile.getBlockColumn(x);
 
                                                 for (int z = 0; z < 16; ++z) {
-                                                    this.savePixel(c[z], out);
+                                                    int relX = 64 * o + 16 * i + x;
+                                                    int relZ = 64 * p + 16 * j + z;
+                                                    int color = region.image.getRGB(relX, relZ);
+                                                    IronBlock b = new IronBlock(color);
+                                                    this.savePixel(b, out);
                                                 }
                                             }
 
@@ -295,15 +301,10 @@ public class JourneyMapToXaero {
     }
 
     private void savePixel(final IronBlock pixel, final DataOutputStream out) throws IOException {
-        final int parametres = pixel.getParameters();
-        out.writeInt(parametres);
+        final int parameters = pixel.getParameters();
+        out.writeInt(parameters);
         if (!pixel.isGrass()) {
             out.writeInt(pixel.getState());
-        }
-
-        if ((parametres & 16777216) != 0) {
-            System.out.println("do I actually want to save top height?");
-            out.write(pixel.getTopHeight());
         }
 
         int biome;
