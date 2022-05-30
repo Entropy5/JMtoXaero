@@ -8,6 +8,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -21,23 +22,31 @@ import java.util.zip.ZipOutputStream;
 
 public class JourneyMapToXaero {
 
-    private File getFile(final IronMapRegion region) {
-        return new File("C:\\Users\\mcmic\\Downloads\\1_1.zip");
-    }
-
     public static void main(final String[] args) {
 
-        try {
-            BufferedImage image = ImageIO.read(new File("C:\\Users\\mcmic\\Downloads\\-1,-1.png"));
-            System.out.println(image.getRGB(0, 0));
-            System.out.println(image.getRGB(511, 511));
-            new JourneyMapToXaero().saveRegion(new IronMapRegion(image), 0);
+        File path = new File("C:\\Users\\mcmic\\Downloads");
+        File [] files = path.listFiles();
+        assert files != null;
+        for (File file : files) {
+            if (file.isFile()) {
+                String[] parts = file.getName().split("[.,]");
+                if (parts.length == 3 && parts[2].equals("png")) {
+                    try {
+                        int rx = Integer.parseInt(parts[0]);
+                        int rz = Integer.parseInt(parts[1]);
+                        String zipName = rx + "_" + rz + ".zip";
+                        File zipFile = new File(String.valueOf(Paths.get(file.getParent()).resolve(zipName)));
+                        System.out.println(zipFile);
 
-        } catch(IOException exc) {
-            exc.printStackTrace();
+                        BufferedImage image = ImageIO.read(file);
+                        new JourneyMapToXaero().saveRegion(new IronMapRegion(image), zipFile, 0);
+
+                    } catch(Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
-
-
     }
 
 
@@ -135,10 +144,6 @@ public class JourneyMapToXaero {
             return this.state;
         }
 
-        public int getTopHeight() {
-            return 0; //TODO
-        }
-
         public int getNumberOfOverlays() {
             return 0; // we prly dont need that?
         }
@@ -161,10 +166,9 @@ public class JourneyMapToXaero {
     }
 
 
-    public boolean saveRegion(final IronMapRegion region, final int extraAttempts) {
+    public boolean saveRegion(final IronMapRegion region, File zipFile, final int extraAttempts) {
         try {
-            final File permFile = getFile(region);
-            final File file = getTempFile(permFile);
+            final File file = getTempFile(zipFile);
             if (!file.exists()) {
                 file.createNewFile();
             }
@@ -246,7 +250,7 @@ public class JourneyMapToXaero {
             }
 
             if (regionIsEmpty) {
-                this.safeDelete(permFile.toPath(), ".zip");
+                this.safeDelete(zipFile.toPath(), ".zip");
                 this.safeDelete(file.toPath(), ".temp");
                 //    if (xaero.map.WorldMap.settings.debug) {
                 System.out.println("Save cancelled because the region is empty: " + region /**+ " " + region.getWorldId() + " " + region.getDimId() + " " + region.getMwId()*/);
@@ -254,7 +258,7 @@ public class JourneyMapToXaero {
 
                 return false;
             } else {
-                this.safeMoveAndReplace(file.toPath(), permFile.toPath(), ".temp", ".zip");
+                this.safeMoveAndReplace(file.toPath(), zipFile.toPath(), ".temp", ".zip");
                 //      if (xaero.map.WorldMap.settings.debug) {
                 System.out.println("Region saved: " + region + " " /**+ region.getWorldId() + " " + region.getDimId() + " " + region.getMwId() + ", " *+ this.mapProcessor.getMapWriter().getUpdateCounter()*/);
                 // }
@@ -272,7 +276,7 @@ public class JourneyMapToXaero {
                 } catch (final InterruptedException var25) {
                 }
 
-                return this.saveRegion(region, extraAttempts - 1);
+                return this.saveRegion(region, zipFile, extraAttempts - 1);
             } else {
                 return true;
             }
