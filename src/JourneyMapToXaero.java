@@ -130,31 +130,16 @@ public class JourneyMapToXaero {
                 zipOut.putNextEntry(e);
                 out.write(255);  // Black box logic from Xaero format and code
                 out.writeInt(4);
-                int o = 0;
+                int xPrly = 0;
 
                 while (true) {
-                    if (o >= 8) {  // A Region consists of 8 x 8 TileChunks, each size 64
+                    if (xPrly >= 8) {  // A Region consists of 8 x 8 TileChunks, each size 64
                         zipOut.closeEntry();
                         break;
                     }
-                    for (int p = 0; p < 8; ++p) {
-                        final IronChunk chunk = region.getChunk();
-                        if (chunk != null) {
-                            if (!chunk.includeInSave()) {
-                                if (!chunk.hasHighlightsIfUndiscovered()) {
-                                    region.setChunk(o, p);
-                                    synchronized (chunk) {
-                                        chunk.getLeafTexture().deleteTexturesAndBuffers();
-                                    }
-                                }
+                    for (int zPrly = 0; zPrly < 8; ++zPrly) {
 
-                                final BranchLeveledRegion parentRegion = region.getParent();
-                                if (parentRegion != null) {
-                                    parentRegion.setShouldCheckForUpdatesRecursive(true);
-                                }
-                            } else {
-                                out.write(o << 4 | p);
-                                boolean chunkIsEmpty = true;
+                        out.write(xPrly << 4 | zPrly);
 
                         for (int i = 0; i < 4; ++i) {
                             for (int j = 0; j < 4; ++j) {
@@ -162,30 +147,20 @@ public class JourneyMapToXaero {
 
                                 for (int x = 0; x < 16; ++x) {
 
-                                                for (int z = 0; z < 16; ++z) {
-                                                    int relX = 64 * o + 16 * i + x;
-                                                    int relZ = 64 * p + 16 * j + z;
-                                                    int color = region.image.getRGB(relX, relZ);
-                                                    IronBlock b = new IronBlock(color);
-                                                    this.savePixel(b, out);
-                                                }
-                                            }
-
-                                            out.write(tile.getWorldInterpretationVersion());
-                                        } else {
-                                            out.writeInt(-1);
-                                        }
+                                    for (int z = 0; z < 16; ++z) {
+                                        int relX = 64 * xPrly + 16 * i + x;
+                                        int relZ = 64 * zPrly + 16 * j + z;
+                                        this.savePixel(new IronBlock(transform(image.getRGB(relX, relZ))), out);
                                     }
                                 }
 
-                                if (!chunkIsEmpty) {
-                                    regionIsEmpty = false;
-                                }
+                                out.write(0); // some version thing
+
                             }
                         }
                     }
 
-                    ++o;
+                    ++xPrly;
                 }
             } finally {
                 if (out != null) {
