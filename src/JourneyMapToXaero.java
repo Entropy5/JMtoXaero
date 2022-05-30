@@ -4,20 +4,23 @@ import xaero.map.region.LeveledRegion;
 import xaero.map.region.Overlay;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
  * Converter for Journeymap data to Xaero format
  * Based mostly on the decompiled code of xaero.map.file.MapSaveLoad
- * Written by IronException and Negative_Entropy
- */
+ * Written by IronException, Entropy, lamp, P529 and Constructor
+ * https://bananazon.com/books/IronException-And-How-He-Did-Most-Of-The-Work-On-This-Project
+ * */
 
 public class JourneyMapToXaero {
 
@@ -145,7 +148,7 @@ public class JourneyMapToXaero {
         }
 
         public int getBiome() {
-            return this.biome; // thats prly plaines..
+            return this.biome; // thats prly plains..
         }
     }
 
@@ -197,7 +200,7 @@ public class JourneyMapToXaero {
                             for (int j = 0; j < 4; ++j) {
 
 
-                                            for (int x = 0; x < 16; ++x) {
+                                for (int x = 0; x < 16; ++x) {
 
                                                 for (int z = 0; z < 16; ++z) {
                                                     int relX = 64 * o + 16 * i + x;
