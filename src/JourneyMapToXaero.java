@@ -272,19 +272,6 @@ public class JourneyMapToXaero {
         }
     }
 
-    public void safeMoveAndReplace(final Path fromPath, final Path toPath, final String fromExtension, final String toExtension) throws IOException {
-        if (toPath.getFileName().toString().endsWith(toExtension) && fromPath.getFileName().toString().endsWith(fromExtension)) {
-            Misc.safeMoveAndReplace(fromPath, toPath, true);
-        } else {
-            throw new RuntimeException("Incorrect file extension: " + fromPath + " " + toPath);
-        }
-    }
-
-
-    private File getTempFile(final File permFile) {
-        return new File(permFile.getParentFile(), "tempXaro.temp");
-    }
-
     private void savePixel(final IronBlock pixel, final DataOutputStream out) throws IOException {
         final int parameters = pixel.getParameters();
         out.writeInt(parameters);
