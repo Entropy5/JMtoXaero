@@ -24,49 +24,32 @@ public class JourneyMapToXaero {
     public static void main(final String[] args) {
 
         File path = new File("C:\\Users\\mcmic\\Downloads");
-        File [] files = path.listFiles();
-        assert files != null;
-        for (File file : files) {
-            if (file.isFile()) {
-                String[] parts = file.getName().split("[.,]");
-                if (parts.length == 3 && parts[2].equals("png")) {
-                    try {
-                        int rx = Integer.parseInt(parts[0]);
-                        int rz = Integer.parseInt(parts[1]);
-                        String zipName = rx + "_" + rz + ".zip";
-                        File zipFile = file.toPath().getParent().resolve(zipName).toFile();
-                        System.out.println(zipFile);
-                        BufferedImage image = ImageIO.read(file);  // JourneyMap image IN
-                        new JourneyMapToXaero().saveRegion(new IronMapRegion(image), zipFile, 0);
+        if (path.listFiles() == null) {
+            return;
+        }
+        Arrays.stream(Objects.requireNonNull(path.listFiles())).parallel()
+                .filter(File::isFile)
+                .forEach(file -> {
+                    String[] parts = file.getName().split("[.,]");
+                    if (parts.length == 3 && parts[2].equals("png")) {
+                        // TODO this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
+                        new Thread(() -> {
+                            try {
+                                int rx = Integer.parseInt(parts[0]);
+                                int rz = Integer.parseInt(parts[1]);
+                                String zipName = rx + "_" + rz + ".zip";
+                                File zipFile = file.toPath().getParent().resolve(zipName).toFile();
+                                System.out.println(zipFile);
+                                BufferedImage image = ImageIO.read(file);  // JourneyMap image IN
+                                new JourneyMapToXaero().saveRegion(image, zipFile);
 
-                    } catch(Exception e) {
-                        e.printStackTrace();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }, file.getName()).start();
                     }
-                }
-            }
-        }
-    }
+                });
 
-
-    private static class IronMapRegion {
-
-        public BufferedImage image;
-
-        public IronMapRegion(BufferedImage jmImage) {
-            this.image = jmImage;
-        }
-        public IronChunk getChunk() {
-            return new IronChunk();
-        }
-
-        public void setChunk(final int o, final int p) {
-            System.out.println("ok what do I do with chunk at " + o + " " + p);
-            // drop it
-        }
-
-        public BranchLeveledRegion getParent() {
-            return null;
-        }
     }
 
     private static class IronChunk {
@@ -102,10 +85,20 @@ public class JourneyMapToXaero {
 
     private static class IronBlock {
 
-        private int journeymapColor;
-        private int state = 0;// TODO needs to fit with isGrass... we want that to be false I think
-        private int colourType = 3; // 3 for no complexity
-        private int biome = 0;
+        private final int journeymapColor;
+        private final int state = 0;// TODO needs to fit with isGrass... we want that to be false I think
+        private final int colourType = 3; // 3 for no complexity
+        private final int biome = 1;
+
+        private final int light = 7;  // min light default from xaero
+
+        private final int height = 64;
+
+        private final int signed_height = 64;
+
+        private final int signed_topHeight = 64;
+
+        private final boolean caveBlock = false;
 
         public IronBlock(final int jmColor) {
             this.journeymapColor = jmColor;
@@ -117,8 +110,13 @@ public class JourneyMapToXaero {
             int parameters = (0);
             parameters |= this.getNumberOfOverlays() != 0 ? 2 : 0;
             parameters |= colourTypeToWrite << 2;
+            parameters |= this.caveBlock ? 128 : 0;
+            parameters |= this.light << 8;
+            parameters |= this.height << 12;
             parameters |= this.biome != -1 ? 1048576 : 0;
-            // ignoring grass (false), cave block (false), light (0), height (0), signed height (0)
+            parameters |= this.signed_height != this.signed_topHeight ? 16777216 : 0;
+
+            // ignoring properties grass (false), height (0), signed height (0)
             return parameters;
         }
 
@@ -195,11 +193,9 @@ public class JourneyMapToXaero {
                                 out.write(o << 4 | p);
                                 boolean chunkIsEmpty = true;
 
-                                for (int i = 0; i < 4; ++i) {
-                                    for (int j = 0; j < 4; ++j) {
-                                        final IronTile tile = chunk.getTile(i, j);
-                                        if (tile != null && tile.isLoaded()) {
-                                            chunkIsEmpty = false;
+                        for (int i = 0; i < 4; ++i) {
+                            for (int j = 0; j < 4; ++j) {
+
 
                                             for (int x = 0; x < 16; ++x) {
 
@@ -232,7 +228,6 @@ public class JourneyMapToXaero {
                 if (out != null) {
                     out.close();
                 }
-
             }
 
             if (regionIsEmpty) {
