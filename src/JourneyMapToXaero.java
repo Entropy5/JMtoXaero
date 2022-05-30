@@ -57,7 +57,7 @@ public class JourneyMapToXaero {
         private final int colourType = 3; // 3 for no complexity
         private final int biome = 1;
 
-        private final int light = 7;  // min light default from xaero
+        private final int light = 0;
 
         private final int height = 64;
 
