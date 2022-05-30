@@ -1,8 +1,3 @@
-import xaero.map.misc.Misc;
-import xaero.map.region.BranchLeveledRegion;
-import xaero.map.region.LeveledRegion;
-import xaero.map.region.Overlay;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -25,7 +20,6 @@ import java.util.zip.ZipOutputStream;
 public class JourneyMapToXaero {
 
     public static void main(final String[] args) {
-
         File path = new File("C:\\Users\\mcmic\\Downloads");
         if (path.listFiles() == null) {
             return;
@@ -35,7 +29,7 @@ public class JourneyMapToXaero {
                 .forEach(file -> {
                     String[] parts = file.getName().split("[.,]");
                     if (parts.length == 3 && parts[2].equals("png")) {
-                        // TODO this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
+                        // T O D O this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
                         new Thread(() -> {
                             try {
                                 int rx = Integer.parseInt(parts[0]);
@@ -55,41 +49,11 @@ public class JourneyMapToXaero {
 
     }
 
-    private static class IronChunk {
-
-        public boolean includeInSave() {
-            return true;
-        }
-
-        public boolean hasHighlightsIfUndiscovered() {
-            return false; // TODO not sure about that
-        }
-
-        public LeveledRegion getLeafTexture() {
-            return null;
-        }
-
-        public IronTile getTile(final int i, final int j) {
-            return new IronTile();
-        }
-
-    }
-
-    private static class IronTile {
-
-        public boolean isLoaded() {
-            return true;
-        }
-
-        public int getWorldInterpretationVersion() {
-            return 0; // in code its that at least... :shrugging:
-        }
-    }
 
     private static class IronBlock {
 
         private final int journeymapColor;
-        private final int state = 0;// TODO needs to fit with isGrass... we want that to be false I think
+        private final int state = 0;// needs to fit with isGrass... we want that to be false I think
         private final int colourType = 3; // 3 for no complexity
         private final int biome = 1;
 
@@ -124,7 +88,7 @@ public class JourneyMapToXaero {
         }
 
         public boolean isGrass() {
-            return true; // TODO not sure this is good? (this.state & -65536) == 0 && (this.state & 4095) == 2;
+            return true; // was: (this.state & -65536) == 0 && (this.state & 4095) == 2;
         }
 
         public int getState() {
@@ -150,21 +114,17 @@ public class JourneyMapToXaero {
         public int getBiome() {
             return this.biome; // thats prly plains..
         }
+
     }
 
 
-    public boolean saveRegion(final IronMapRegion region, File zipFile, final int extraAttempts) {
+    public void saveRegion(final BufferedImage image, File zipFile) {
         try {
-            final File file = getTempFile(zipFile);
-            if (!file.exists()) {
-                file.createNewFile();
-            }
 
-            boolean regionIsEmpty = true;
             DataOutputStream out = null;
 
             try {
-                final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
+                final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zipFile.toPath())));
                 out = new DataOutputStream(zipOut);
                 final ZipEntry e = new ZipEntry("region.xaero");
                 zipOut.putNextEntry(e);
@@ -232,47 +192,24 @@ public class JourneyMapToXaero {
                     out.close();
                 }
             }
+        } catch (final IOException e) {
+            e.printStackTrace();
+            System.out.println("IO exception while trying to save " + " " + e);
 
-            if (regionIsEmpty) {
-                this.safeDelete(zipFile.toPath(), ".zip");
-                this.safeDelete(file.toPath(), ".temp");
-                //    if (xaero.map.WorldMap.settings.debug) {
-                System.out.println("Save cancelled because the region is empty: " + region /**+ " " + region.getWorldId() + " " + region.getDimId() + " " + region.getMwId()*/);
-                //   }
 
-                return false;
-            } else {
-                this.safeMoveAndReplace(file.toPath(), zipFile.toPath(), ".temp", ".zip");
-                //      if (xaero.map.WorldMap.settings.debug) {
-                System.out.println("Region saved: " + region + " " /**+ region.getWorldId() + " " + region.getDimId() + " " + region.getMwId() + ", " *+ this.mapProcessor.getMapWriter().getUpdateCounter()*/);
-                // }
-
-                return true;
-            }
-        } catch (final IOException var28) {
-            System.out.println("IO exception while trying to save " + region
-                    + " " + var28);
-            if (extraAttempts > 0) {
-                System.out.println("(World Map) Retrying...");
-
-                try {
-                    Thread.sleep(20L);
-                } catch (final InterruptedException var25) {
-                }
-
-                return this.saveRegion(region, zipFile, extraAttempts - 1);
-            } else {
-                return true;
-            }
         }
     }
 
-    public void safeDelete(final Path filePath, final String extension) throws IOException {
-        if (!filePath.getFileName().toString().endsWith(extension)) {
-            throw new RuntimeException("Incorrect file extension: " + filePath);
-        } else {
-            Files.deleteIfExists(filePath);
-        }
+    public int transform(final int in) {
+        // Color correction to make JM & Xaero colors match
+        Color c = new Color(in);
+//        int r = c.getRed();
+//        int g = c.getGreen();
+//        int b = c.getBlue();
+//        int brightness = (r + b + g) / 3 / 255;
+//
+//        Color out = new Color((int) (1. * r) & 255, (int) (1. * g) & 255, (int) (1. * b) & 255, c.getAlpha());
+        return c.getRGB();
     }
 
     private void savePixel(final IronBlock pixel, final DataOutputStream out) throws IOException {
@@ -282,13 +219,14 @@ public class JourneyMapToXaero {
             out.writeInt(pixel.getState());
         }
 
+        if ((parameters & 16777216) != 0) {
+            out.write(pixel.height);
+        }
+
         int biome;
         if (pixel.getNumberOfOverlays() != 0) {
             out.write(pixel.getOverlays().size());
 
-            for (biome = 0; biome < pixel.getOverlays().size(); ++biome) {
-                this.saveOverlay((Overlay) pixel.getOverlays().get(biome), out);
-            }
         }
 
         if (pixel.getColourType() == 3) {
@@ -307,20 +245,5 @@ public class JourneyMapToXaero {
 
     }
 
-    private void saveOverlay(final Overlay o, final DataOutputStream out) throws IOException {
-        out.writeInt(o.getParametres());
-        if (!o.isWater()) {
-            out.writeInt(o.getState());
-        }
-
-        if (o.getColourType() == 3) {
-            out.writeInt(o.getCustomColour());
-        }
-
-        if (o.getOpacity() > 1) {
-            out.writeInt(o.getOpacity());
-        }
-
-    }
 
 }
