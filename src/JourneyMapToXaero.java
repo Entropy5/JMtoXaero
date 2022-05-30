@@ -1,4 +1,3 @@
-
 import xaero.map.misc.Misc;
 import xaero.map.region.BranchLeveledRegion;
 import xaero.map.region.LeveledRegion;
@@ -11,7 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Random;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -24,33 +22,32 @@ import java.util.zip.ZipOutputStream;
 public class JourneyMapToXaero {
 
     private File getFile(final IronMapRegion region) {
-        return new File("C:\\Users\\mcmic\\Downloads\\Xaro.zip");
+        return new File("C:\\Users\\mcmic\\Downloads\\1_1.zip");
     }
-
-    private static Random random = new Random();
 
     public static void main(final String[] args) {
 
         try {
-            BufferedImage image = ImageIO.read(new File("C:\\Users\\mcmic\\Downloads\\76,55.png"));
+            BufferedImage image = ImageIO.read(new File("C:\\Users\\mcmic\\Downloads\\0,0.png"));
             System.out.println(image.getRGB(0, 0));
             System.out.println(image.getRGB(511, 511));
+            new JourneyMapToXaero().saveRegion(new IronMapRegion(image), 0);
 
         } catch(IOException exc) {
-            System.out.println("IoException");
+            exc.printStackTrace();
         }
 
-
-
-        //new JourneyMapToXaero().saveRegion(new MapRegion("worldId", "dimId", "mwId", null, 0, 0, 0, true), 0);
-        new JourneyMapToXaero().saveRegion(new IronMapRegion(), 0);
 
     }
 
 
     private static class IronMapRegion {
 
+        public BufferedImage image;
 
+        public IronMapRegion(BufferedImage jmImage) {
+            this.image = jmImage;
+        }
         public IronChunk getChunk(final int x, final int z) {
             return new IronChunk();
         }
@@ -94,7 +91,7 @@ public class JourneyMapToXaero {
         public IronBlock[] getBlockColumn(final int x) {
             final IronBlock[] resul = new IronBlock[16];
             for (int i = 0; i < 16; i++) {
-                resul[i] = new IronBlock(random.nextInt());
+                resul[i] = new IronBlock(-13876760);
             }
             return resul;
         }
@@ -111,14 +108,14 @@ public class JourneyMapToXaero {
         private int colourType = 3; // 3 for no complexity
         private int biome = 0;
 
-        public IronBlock(final int journeymap) {
-            this.journeymapColor = journeymap;
+        public IronBlock(final int jmColor) {
+            this.journeymapColor = jmColor;
         }
 
 
         public int getParameters() {
             final int colourTypeToWrite = this.colourType < 0 ? 0 : this.colourType & 3;
-            int parameters = 1;
+            int parameters = (0);
             parameters |= this.getNumberOfOverlays() != 0 ? 2 : 0;
             parameters |= colourTypeToWrite << 2;
             parameters |= this.biome != -1 ? 1048576 : 0;
