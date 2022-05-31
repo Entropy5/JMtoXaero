@@ -1,42 +1,50 @@
+package com.github.entropy5;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
  * Converter for Journeymap data to Xaero format in MC version 1.12.2
  * Based mostly on the decompiled code of xaero.map.file.MapSaveLoad
- * Written by IronException, Entropy, lamp and Constructor
+ * Written by IronException, Entropy, lamp, P529 and Constructor
  * <a href="https://bananazon.com/books/IronException-And-How-He-Did-Most-Of-The-Work-On-This-Project">...</a>
  */
 
 
 public class JourneyMapToXaero {
 
-    final static File folder_in = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\journeymap\\data\\mp\\p5");
-    final static File folder_out = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\XaeroWorldMap\\Multiplayer_masonic.wasteofti.me");
-
     public static void main(final String[] args) {
-        processDimension("DIM0\\day", "null\\mw$default", false);
-        processDimension("DIM1\\day", "DIM1\\mw$default", false);
-        processDimension("DIM-1", "DIM-1\\mw$default", true);
+        if (args.length < 2) {
+            System.err.println("usage: <input folder> <output folder> (optional) <dimension id> <journeymap slice[0-15 or day/night/topo]>");
+            System.exit(1);
+        }
+
+        int dimension = 0;
+        String slice = "day";
+        if (args.length > 3) {
+            dimension = Integer.parseInt(args[2]);
+            slice = args[3];
+        }
+        String input = args[0];
+        String output = args[1];
+
+        Path folderIn = new File(String.format("%s/DIM%d/%s", input, dimension, slice)).toPath();
+        Path folderOut = new File(String.format("%s/%s/mw$default/", output, (dimension == 0 ? "null" : "DIM" + dimension))).toPath();
+
+        processDimension(folderIn, folderOut, dimension == -1);
     }
 
-    private static void processDimension(String path_in, String path_out, boolean nether) {
-
-        Path dim_path_in = folder_in.toPath().resolve(path_in);
-        Path dim_path_out = folder_out.toPath().resolve(path_out);
-        File folderCheck = new File(String.valueOf(dim_path_out.toFile()));
-        File parentCheck = new File(String.valueOf(dim_path_out.toFile().getParentFile()));
+    private static void processDimension(Path folderIn, Path folderOut, boolean nether) {
+        File folderCheck = new File(String.valueOf(folderOut.toFile()));
+        File parentCheck = new File(String.valueOf(folderOut.toFile().getParentFile()));
         if (!parentCheck.exists()){
             parentCheck.mkdir();
             folderCheck.mkdir();
@@ -48,7 +56,7 @@ public class JourneyMapToXaero {
 
         if (nether) {
             HashMap<String, HashSet<File>> allCaveFiles = new HashMap<>();   // region file -> all cave file locations
-            for (File folder : Objects.requireNonNull(dim_path_in.toFile().listFiles())) {
+            for (File folder : Objects.requireNonNull(folderIn.toFile().listFiles())) {
                 for (File file : Objects.requireNonNull(folder.listFiles())) {
                     String layer = file.getParentFile().getName();  // 0, 1, 2, day, night
                     String region = file.getName();  // 1,1.png
@@ -76,7 +84,7 @@ public class JourneyMapToXaero {
                         tempGraphics.drawImage(temp, 0, 0, null);
                     }
                     String[] parts = region.split("[.,]");
-                    processRegion(true, dim_path_out, combined, parts, fileList.get(0));
+                    processRegion(true, folderOut, combined, parts, fileList.get(0));
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -85,28 +93,28 @@ public class JourneyMapToXaero {
             return;
         }
 
-        // OverWorld and End
-        File[] files = dim_path_in.toFile().listFiles();
+        // Overworld and End
+        File[] files = folderIn.toFile().listFiles();
         if (files == null) {
             return;
         }
         for (File file : files) {
             if (file.isFile()) {
                 String[] parts = file.getName().split("[.,]");
-                BufferedImage image = null;
+                BufferedImage image;
                 try {
                     image = ImageIO.read(file);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                processRegion(false, dim_path_out, image, parts, file);
+                processRegion(false, folderOut, image, parts, file);
             }
         }
     }
 
     private static void processRegion(boolean nether, Path dim_path_out, BufferedImage file, String[] parts, File location) {
         if (parts.length == 3 && parts[2].equals("png")) {
-            // T O D O this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
+            //TODO: this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
             try {
                 int rx = Integer.parseInt(parts[0]);
                 int rz = Integer.parseInt(parts[1]);
@@ -224,7 +232,6 @@ public class JourneyMapToXaero {
             }
         } catch (final IOException e) {
             e.printStackTrace();
-            System.out.println("IO exception while trying to save " + " " + e);
         }
     }
 

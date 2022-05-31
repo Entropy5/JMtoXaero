@@ -1,0 +1,18 @@
+plugins {
+    id 'java'
+}
+
+group 'com.github.entropy5'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+jar {
+    manifest {
+        attributes "Implementation-Title": "entropy5",
+                "Implementation-Version": "1.0",
+                "Main-Class": "com.github.entropy5.JourneyMapToXaero"
+    }
+}
