@@ -4,7 +4,7 @@ Tool to convert [JourneyMap](https://www.curseforge.com/minecraft/mc-mods/journe
 
 Usage: 
 
-`java -jar JMtoXaero.jar <input folder> <output folder> (optional) <dimension id> (-1, 0, 1, or all)`
+`java -jar JMtoXaero.jar <input folder> <output folder> <dimension> (-1, 0, 1, all)`
 
 Input folder should point to your journeymap singleplayer or multiplayer data folder, where DIM0 etc resides.
 
