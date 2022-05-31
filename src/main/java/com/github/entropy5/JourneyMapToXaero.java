@@ -52,7 +52,8 @@ public class JourneyMapToXaero {
         List<String> caveLayers = new ArrayList<>();
         for (int i = 0; i < 16; i++) caveLayers.add(i + "");
 
-        if (nether) {
+        //if nether
+        if (dimension == -1) {
             HashMap<String, HashSet<File>> allCaveFiles = new HashMap<>();   // region file -> all cave file locations
             for (File folder : Objects.requireNonNull(folderIn.toFile().listFiles())) {
                 for (File file : Objects.requireNonNull(folder.listFiles())) {
