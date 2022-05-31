@@ -21,9 +21,13 @@ import java.util.zip.ZipOutputStream;
 public class JourneyMapToXaero {
 
     public static void main(final String[] args) {
+        if (args.length < 2) {
+            System.err.println("usage: <input folder> <output folder>");
+            System.exit(1);
+        }
 
-        File folder_in = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\journeymap\\data\\mp\\p5");
-        File folder_out = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\XaeroWorldMap\\Multiplayer_masonic.wasteofti.me");
+        File folder_in = new File(args[0]);
+        File folder_out = new File(args[1]);
 
         Path dim_path_in = folder_in.toPath().resolve("DIM0\\day");
         Path dim_path_out = folder_out.toPath().resolve("null\\mw$default");
