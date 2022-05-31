@@ -20,16 +20,26 @@ import java.util.zip.ZipOutputStream;
 
 public class JourneyMapToXaero {
 
+    final static File folder_in = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\journeymap\\data\\mp\\p5");
+    final static File folder_out = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\XaeroWorldMap\\Multiplayer_masonic.wasteofti.me");
+
     public static void main(final String[] args) {
+        processDimension(false, "DIM0\\day", "null\\mw$default");
+        processDimension(false, "DIM1\\day", "DIM1\\mw$default");
+        processDimension(true, "DIM-1", "DIM-1\\mw$default");
+    }
 
-        File folder_in = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\journeymap\\data\\mp\\p5");
-        File folder_out = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\XaeroWorldMap\\Multiplayer_masonic.wasteofti.me");
-
-        Path dim_path_in = folder_in.toPath().resolve("DIM0\\day");
-        Path dim_path_out = folder_out.toPath().resolve("null\\mw$default");
+    private static void processDimension(boolean caves, String path_in, String path_out) {
+        if (caves) {
+            return;
+        }
+        Path dim_path_in = folder_in.toPath().resolve(path_in);
+        Path dim_path_out = folder_out.toPath().resolve(path_out);
 
         File [] files = dim_path_in.toFile().listFiles();
-        assert files != null;
+        if (files == null) {
+            return;
+        }
         for (File file : files) {
             if (file.isFile()) {
                 String[] parts = file.getName().split("[.,]");
