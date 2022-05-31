@@ -14,8 +14,8 @@ import java.util.zip.ZipOutputStream;
  * Converter for Journeymap data to Xaero format
  * Based mostly on the decompiled code of xaero.map.file.MapSaveLoad
  * Written by IronException, Entropy, lamp, P529 and Constructor
- * https://bananazon.com/books/IronException-And-How-He-Did-Most-Of-The-Work-On-This-Project
- * */
+ * <a href="https://bananazon.com/books/IronException-And-How-He-Did-Most-Of-The-Work-On-This-Project">...</a>
+ */
 
 
 public class JourneyMapToXaero {
@@ -31,7 +31,6 @@ public class JourneyMapToXaero {
                     String[] parts = file.getName().split("[.,]");
                     if (parts.length == 3 && parts[2].equals("png")) {
                         // T O D O this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
-//                        new Thread(() -> {
                         try {
                             int rx = Integer.parseInt(parts[0]);
                             int rz = Integer.parseInt(parts[1]);
@@ -44,7 +43,6 @@ public class JourneyMapToXaero {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-//                        }, file.getName()).start();
                     }
                 });
 
@@ -54,19 +52,7 @@ public class JourneyMapToXaero {
     private static class IronBlock {
 
         private final int journeymapColor;
-        private final int state = 0;// needs to fit with isGrass... we want that to be false I think
         private final int colourType = 3; // 3 for no complexity
-        private final int biome = 1;
-
-        private final int light = 0;
-
-        private final int height = 64;
-
-        private final int signed_height = 64;
-
-        private final int signed_topHeight = 64;
-
-        private final boolean caveBlock = false;
 
         public IronBlock(final int jmColor) {
             this.journeymapColor = jmColor;
@@ -74,30 +60,27 @@ public class JourneyMapToXaero {
 
 
         public int getParameters() {
-            final int colourTypeToWrite = this.colourType < 0 ? 0 : this.colourType & 3;
+            final int colourTypeToWrite = this.colourType & 3;
             int parameters = (0);
             parameters |= this.getNumberOfOverlays() != 0 ? 2 : 0;
             parameters |= colourTypeToWrite << 2;
-            parameters |= this.caveBlock ? 128 : 0;
-            parameters |= this.light << 8;
-            parameters |= this.height << 12;
-            parameters |= this.biome != -1 ? 1048576 : 0;
-            parameters |= this.signed_height != this.signed_topHeight ? 16777216 : 0;
-
-            // ignoring properties grass (false), height (0), signed height (0)
+            int height = 64;
+            parameters |= height << 12;
+            parameters |= 1048576;
+            // ignoring some properties here
             return parameters;
         }
 
         public boolean isGrass() {
-            return true; // was: (this.state & -65536) == 0 && (this.state & 4095) == 2;
+            return true;
         }
 
         public int getState() {
-            return this.state;
+            return 0;  // needs to fit with isGrass... we want that to be false I think
         }
 
         public int getNumberOfOverlays() {
-            return 0; // we prly dont need that?
+            return 0;
         }
 
         public Map<Object, Object> getOverlays() {
@@ -113,7 +96,7 @@ public class JourneyMapToXaero {
         }
 
         public int getBiome() {
-            return this.biome; // thats prly plains..
+            return 1; // plains
         }
 
     }
@@ -129,7 +112,7 @@ public class JourneyMapToXaero {
                 out = new DataOutputStream(zipOut);
                 final ZipEntry e = new ZipEntry("region.xaero");
                 zipOut.putNextEntry(e);
-                out.write(255);  // Black box logic from Xaero format and code
+                out.write(255);  // mimicking logic from Xaero format
                 out.writeInt(4);
                 int o = 0;
 
@@ -179,12 +162,7 @@ public class JourneyMapToXaero {
     public int transform(final int in) {
         // Color correction to make JM & Xaero colors match
         Color c = new Color(in);
-//        int r = c.getRed();
-//        int g = c.getGreen();
-//        int b = c.getBlue();
-//        int brightness = (r + b + g) / 3 / 255;
-//
-//        Color out = new Color((int) (1. * r) & 255, (int) (1. * g) & 255, (int) (1. * b) & 255, c.getAlpha());
+        // I was doing some editing here but pushing the values over 255 only made it worse
         return c.getRGB();
     }
 
@@ -193,10 +171,6 @@ public class JourneyMapToXaero {
         out.writeInt(parameters);
         if (!pixel.isGrass()) {
             out.writeInt(pixel.getState());
-        }
-
-        if ((parameters & 16777216) != 0) {
-            out.write(pixel.height);
         }
 
         int biome;
