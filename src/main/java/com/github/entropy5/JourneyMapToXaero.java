@@ -23,7 +23,7 @@ public class JourneyMapToXaero {
 
     public static void main(final String[] args) {
         if (args.length < 2) {
-            System.err.println("usage: <input folder> <output folder> (optional) <dimension id>");
+            System.err.println("usage: <input folder> <output folder> <dimension id>");
             System.exit(1);
         }
 
@@ -40,10 +40,13 @@ public class JourneyMapToXaero {
         }
     }
 
-    private static void processDimension(Path folderIn, Path folderOut, boolean nether) {
+    private static void processDimension(String input, String output, int dimension) {
+        Path folderIn = new File(String.format("%s/DIM%d/", input, dimension)).toPath();
+        Path folderOut = new File(String.format("%s/%s/mw$default/", output, (dimension == 0 ? "null" : "DIM" + dimension))).toPath();
+
         File folderCheck = new File(String.valueOf(folderOut.toFile()));
         File parentCheck = new File(String.valueOf(folderOut.toFile().getParentFile()));
-        if (!parentCheck.exists()){
+        if (!parentCheck.exists()) {
             parentCheck.mkdir();
             folderCheck.mkdir();
         } else if (!folderCheck.exists()) {
@@ -56,7 +59,7 @@ public class JourneyMapToXaero {
         if (dimension == -1) {
             HashMap<String, HashSet<File>> allCaveFiles = new HashMap<>();   // region file -> all cave file locations
             for (File folder : Objects.requireNonNull(folderIn.toFile().listFiles())) {
-                for (File file : Objects.requireNonNull(folder.listFiles())) {
+                Arrays.stream(folder.listFiles()).parallel().forEach(file -> {
                     String layer = file.getParentFile().getName();  // 0, 1, 2, day, night
                     String region = file.getName();  // 1,1.png
                     if (caveLayers.contains(layer)) {  // if this folder is not day, night, or something weird
@@ -69,9 +72,10 @@ public class JourneyMapToXaero {
                         regionFiles.add(file);
                         allCaveFiles.put(region, regionFiles);
                     }
+                });
                 }
-            }
-            for (String region : allCaveFiles.keySet()) {
+
+            allCaveFiles.keySet().stream().parallel().forEach(region -> {
                 List<File> fileList = new ArrayList<>(allCaveFiles.get(region));
                 Collections.sort(fileList);
 
@@ -88,28 +92,24 @@ public class JourneyMapToXaero {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            }
+            });
             return;
         }
 
         // OverWorld and End
         folderIn = folderIn.resolve("day");
-        File[] files = folderIn.toFile().listFiles();
-        if (files == null) {
-            return;
-        }
-        for (File file : files) {
-            if (file.isFile()) {
-                String[] parts = file.getName().split("[.,]");
-                BufferedImage image;
-                try {
-                    image = ImageIO.read(file);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                processRegion(false, folderOut, image, parts, file);
-            }
-        }
+        Arrays.stream(folderIn.toFile().listFiles()).parallel()
+                .filter(File::isFile)
+                .forEach(file -> {
+                    String[] parts = file.getName().split("[.,]");
+                    BufferedImage image;
+                    try {
+                        image = ImageIO.read(file);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    processRegion(false, folderOut, image, parts, file);
+                });
     }
 
     private static void processRegion(boolean nether, Path dim_path_out, BufferedImage file, String[] parts, File location) {
