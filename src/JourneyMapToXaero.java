@@ -11,7 +11,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Converter for Journeymap data to Xaero format
+ * Converter for Journeymap data to Xaero format in MC version 1.12.2
  * Based mostly on the decompiled code of xaero.map.file.MapSaveLoad
  * Written by IronException, Entropy, lamp, P529 and Constructor
  * <a href="https://bananazon.com/books/IronException-And-How-He-Did-Most-Of-The-Work-On-This-Project">...</a>
@@ -21,11 +21,14 @@ import java.util.zip.ZipOutputStream;
 public class JourneyMapToXaero {
 
     public static void main(final String[] args) {
-        File path = new File("C:\\Users\\mcmic\\Downloads");
-        if (path.listFiles() == null) {
+
+        File path_in = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\journeymap\\data\\mp\\p5\\DIM0\\day");
+        File path_out = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\XaeroWorldMap\\Multiplayer_masonic.wasteofti.me\\null\\mw$default");
+
+        if (path_in.listFiles() == null) {
             return;
         }
-        Arrays.stream(Objects.requireNonNull(path.listFiles())).parallel()
+        Arrays.stream(Objects.requireNonNull(path_in.listFiles())).parallel()
                 .filter(File::isFile)
                 .forEach(file -> {
                     String[] parts = file.getName().split("[.,]");
@@ -35,7 +38,7 @@ public class JourneyMapToXaero {
                             int rx = Integer.parseInt(parts[0]);
                             int rz = Integer.parseInt(parts[1]);
                             String zipName = rx + "_" + rz + ".zip";
-                            File zipFile = file.toPath().getParent().resolve(zipName).toFile();
+                            File zipFile = path_out.toPath().resolve(zipName).toFile();
                             System.out.println(zipFile);
                             BufferedImage image = ImageIO.read(file);  // JourneyMap image IN
                             new JourneyMapToXaero().saveRegion(image, zipFile);
@@ -60,10 +63,10 @@ public class JourneyMapToXaero {
 
         public int getParameters() {
             final int colourTypeToWrite = this.colourType & 3;
+            int height = 64;
             int parameters = (0);
             parameters |= this.getNumberOfOverlays() != 0 ? 2 : 0;
             parameters |= colourTypeToWrite << 2;
-            int height = 64;
             parameters |= height << 12;
             parameters |= 1048576;
             // ignoring some properties here
