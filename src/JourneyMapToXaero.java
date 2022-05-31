@@ -45,7 +45,6 @@ public class JourneyMapToXaero {
                         }
                     }
                 });
-
     }
 
 
@@ -98,7 +97,6 @@ public class JourneyMapToXaero {
         public int getBiome() {
             return 1; // plains
         }
-
     }
 
 
@@ -122,28 +120,20 @@ public class JourneyMapToXaero {
                         break;
                     }
                     for (int p = 0; p < 8; ++p) {
-
                         out.write(o << 4 | p);
-
                         for (int i = 0; i < 4; ++i) {
                             for (int j = 0; j < 4; ++j) {
-
-
                                 for (int x = 0; x < 16; ++x) {
-
                                     for (int z = 0; z < 16; ++z) {
                                         int relX = 64 * o + 16 * i + x;
                                         int relZ = 64 * p + 16 * j + z;
                                         this.savePixel(new IronBlock(transform(image.getRGB(relX, relZ))), out);
                                     }
                                 }
-
                                 out.write(0); // some version thing
-
                             }
                         }
                     }
-
                     ++o;
                 }
             } finally {
@@ -154,8 +144,6 @@ public class JourneyMapToXaero {
         } catch (final IOException e) {
             e.printStackTrace();
             System.out.println("IO exception while trying to save " + " " + e);
-
-
         }
     }
 
@@ -176,7 +164,6 @@ public class JourneyMapToXaero {
         int biome;
         if (pixel.getNumberOfOverlays() != 0) {
             out.write(pixel.getOverlays().size());
-
         }
 
         if (pixel.getColourType() == 3) {
@@ -192,8 +179,5 @@ public class JourneyMapToXaero {
                 out.writeInt(biome);
             }
         }
-
     }
-
-
 }
