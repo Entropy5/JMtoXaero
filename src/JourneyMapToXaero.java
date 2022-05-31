@@ -1,4 +1,5 @@
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
@@ -14,7 +15,7 @@ import java.util.zip.ZipOutputStream;
 /**
  * Converter for Journeymap data to Xaero format in MC version 1.12.2
  * Based mostly on the decompiled code of xaero.map.file.MapSaveLoad
- * Written by IronException, Entropy, lamp, P529 and Constructor
+ * Written by IronException, Entropy, lamp and Constructor
  * <a href="https://bananazon.com/books/IronException-And-How-He-Did-Most-Of-The-Work-On-This-Project">...</a>
  */
 
