@@ -17,6 +17,7 @@ import java.util.zip.ZipOutputStream;
  * https://bananazon.com/books/IronException-And-How-He-Did-Most-Of-The-Work-On-This-Project
  * */
 
+
 public class JourneyMapToXaero {
 
     public static void main(final String[] args) {
@@ -30,20 +31,20 @@ public class JourneyMapToXaero {
                     String[] parts = file.getName().split("[.,]");
                     if (parts.length == 3 && parts[2].equals("png")) {
                         // T O D O this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
-                        new Thread(() -> {
-                            try {
-                                int rx = Integer.parseInt(parts[0]);
-                                int rz = Integer.parseInt(parts[1]);
-                                String zipName = rx + "_" + rz + ".zip";
-                                File zipFile = file.toPath().getParent().resolve(zipName).toFile();
-                                System.out.println(zipFile);
-                                BufferedImage image = ImageIO.read(file);  // JourneyMap image IN
-                                new JourneyMapToXaero().saveRegion(image, zipFile);
+//                        new Thread(() -> {
+                        try {
+                            int rx = Integer.parseInt(parts[0]);
+                            int rz = Integer.parseInt(parts[1]);
+                            String zipName = rx + "_" + rz + ".zip";
+                            File zipFile = file.toPath().getParent().resolve(zipName).toFile();
+                            System.out.println(zipFile);
+                            BufferedImage image = ImageIO.read(file);  // JourneyMap image IN
+                            new JourneyMapToXaero().saveRegion(image, zipFile);
 
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }, file.getName()).start();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+//                        }, file.getName()).start();
                     }
                 });
 
@@ -130,16 +131,16 @@ public class JourneyMapToXaero {
                 zipOut.putNextEntry(e);
                 out.write(255);  // Black box logic from Xaero format and code
                 out.writeInt(4);
-                int xPrly = 0;
+                int o = 0;
 
                 while (true) {
-                    if (xPrly >= 8) {  // A Region consists of 8 x 8 TileChunks, each size 64
+                    if (o >= 8) {  // A Region consists of 8 x 8 TileChunks, each size 64
                         zipOut.closeEntry();
                         break;
                     }
-                    for (int zPrly = 0; zPrly < 8; ++zPrly) {
+                    for (int p = 0; p < 8; ++p) {
 
-                        out.write(xPrly << 4 | zPrly);
+                        out.write(o << 4 | p);
 
                         for (int i = 0; i < 4; ++i) {
                             for (int j = 0; j < 4; ++j) {
@@ -148,8 +149,8 @@ public class JourneyMapToXaero {
                                 for (int x = 0; x < 16; ++x) {
 
                                     for (int z = 0; z < 16; ++z) {
-                                        int relX = 64 * xPrly + 16 * i + x;
-                                        int relZ = 64 * zPrly + 16 * j + z;
+                                        int relX = 64 * o + 16 * i + x;
+                                        int relZ = 64 * p + 16 * j + z;
                                         this.savePixel(new IronBlock(transform(image.getRGB(relX, relZ))), out);
                                     }
                                 }
@@ -160,7 +161,7 @@ public class JourneyMapToXaero {
                         }
                     }
 
-                    ++xPrly;
+                    ++o;
                 }
             } finally {
                 if (out != null) {
