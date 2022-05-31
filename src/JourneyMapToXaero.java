@@ -1,8 +1,8 @@
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -22,38 +22,42 @@ public class JourneyMapToXaero {
 
     public static void main(final String[] args) {
 
-        File path_in = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\journeymap\\data\\mp\\p5\\DIM0\\day");
-        File path_out = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\XaeroWorldMap\\Multiplayer_masonic.wasteofti.me\\null\\mw$default");
+        File folder_in = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\journeymap\\data\\mp\\p5");
+        File folder_out = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\XaeroWorldMap\\Multiplayer_masonic.wasteofti.me");
 
-        if (path_in.listFiles() == null) {
-            return;
-        }
-        Arrays.stream(Objects.requireNonNull(path_in.listFiles())).parallel()
-                .filter(File::isFile)
-                .forEach(file -> {
-                    String[] parts = file.getName().split("[.,]");
-                    if (parts.length == 3 && parts[2].equals("png")) {
-                        // T O D O this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
-                        try {
-                            int rx = Integer.parseInt(parts[0]);
-                            int rz = Integer.parseInt(parts[1]);
-                            String zipName = rx + "_" + rz + ".zip";
-                            File zipFile = path_out.toPath().resolve(zipName).toFile();
-                            System.out.println(zipFile);
-                            BufferedImage image = ImageIO.read(file);  // JourneyMap image IN
-                            new JourneyMapToXaero().saveRegion(image, zipFile);
+        Path dim_path_in = folder_in.toPath().resolve("DIM0\\day");
+        Path dim_path_out = folder_out.toPath().resolve("null\\mw$default");
 
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+        File [] files = dim_path_in.toFile().listFiles();
+        assert files != null;
+        for (File file : files) {
+            if (file.isFile()) {
+                String[] parts = file.getName().split("[.,]");
+                if (parts.length == 3 && parts[2].equals("png")) {
+                    // T O D O this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
+                    try {
+                        int rx = Integer.parseInt(parts[0]);
+                        int rz = Integer.parseInt(parts[1]);
+                        String zipName = rx + "_" + rz + ".zip";
+                        File zipFile = dim_path_out.resolve(zipName).toFile();
+                        BufferedImage image = ImageIO.read(file);  // JourneyMap image IN
+                        new JourneyMapToXaero().saveRegion(image, zipFile);
+                        System.out.println("Converted " + file.toString().split("journeymap")[1] + " to " + zipFile.toString().split("XaeroWorldMap")[1]);
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                });
+                }
+            }
+        }
     }
 
 
     private static class IronBlock {
 
         private final int journeymapColor;
+
+        private final boolean caveBlock = false;
         private final int colourType = 3; // 3 for no complexity
 
         public IronBlock(final int jmColor) {
@@ -65,17 +69,18 @@ public class JourneyMapToXaero {
             final int colourTypeToWrite = this.colourType & 3;
             int height = 64;
             int parameters = (0);
-            parameters |= !this.isGrass() ? 1 : 0;
+            parameters |= this.isNotGrass() ? 1 : 0;
             parameters |= this.getNumberOfOverlays() != 0 ? 2 : 0;
             parameters |= colourTypeToWrite << 2;
+            parameters |= this.caveBlock ? 128 : 0;
             parameters |= height << 12;
             parameters |= 1048576;
             // ignoring some properties here
             return parameters;
         }
 
-        public boolean isGrass() {
-            return false;
+        public boolean isNotGrass() {
+            return true;
         }
 
         public int getState() {
@@ -154,7 +159,7 @@ public class JourneyMapToXaero {
     private void savePixel(final IronBlock pixel, final DataOutputStream out) throws IOException {
         final int parameters = pixel.getParameters();
         out.writeInt(parameters);
-        if (!pixel.isGrass()) {
+        if (pixel.isNotGrass()) {
             out.writeInt(pixel.getState());
         }
 
