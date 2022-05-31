@@ -32,9 +32,11 @@ public class JourneyMapToXaero {
             dimension = Integer.parseInt(args[2]);
             slice = args[3];
         }
+        String input = args[0];
+        String output = args[1];
 
-        Path folderIn = new File(String.format("%s/DIM%d/%s", args[0], dimension, slice)).toPath();
-        Path folderOut = new File((dimension == 0 ? "null" : "DIM" + dimension) + "mw$default").toPath();
+        Path folderIn = new File(String.format("%s/DIM%d/%s", input, dimension, slice)).toPath();
+        Path folderOut = new File(String.format("%s/%s/mw$default/", output, (dimension == 0 ? "null" : "DIM" + dimension))).toPath();
 
         File[] files = folderIn.toFile().listFiles();
         assert files != null;
