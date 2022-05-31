@@ -8,5 +8,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="XaerosWorldMap_1.22.0_Forge_1.12" level="project" />
+    <orderEntry type="library" name="journeymap-1.12.2-5.5.4" level="project" />
   </component>
 </module>

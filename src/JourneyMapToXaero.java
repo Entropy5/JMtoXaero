@@ -65,6 +65,7 @@ public class JourneyMapToXaero {
             final int colourTypeToWrite = this.colourType & 3;
             int height = 64;
             int parameters = (0);
+            parameters |= !this.isGrass() ? 1 : 0;
             parameters |= this.getNumberOfOverlays() != 0 ? 2 : 0;
             parameters |= colourTypeToWrite << 2;
             parameters |= height << 12;
@@ -74,11 +75,11 @@ public class JourneyMapToXaero {
         }
 
         public boolean isGrass() {
-            return true;
+            return false;
         }
 
         public int getState() {
-            return 0;  // needs to fit with isGrass... we want that to be false I think
+            return 42;  // iron block seems to be the best blank slate to map color on, also the solution to life
         }
 
         public int getNumberOfOverlays() {
@@ -130,7 +131,7 @@ public class JourneyMapToXaero {
                                     for (int z = 0; z < 16; ++z) {
                                         int relX = 64 * o + 16 * i + x;
                                         int relZ = 64 * p + 16 * j + z;
-                                        this.savePixel(new IronBlock(transform(image.getRGB(relX, relZ))), out);
+                                        this.savePixel(new IronBlock(image.getRGB(relX, relZ)), out);
                                     }
                                 }
                                 out.write(0); // some version thing
@@ -148,13 +149,6 @@ public class JourneyMapToXaero {
             e.printStackTrace();
             System.out.println("IO exception while trying to save " + " " + e);
         }
-    }
-
-    public int transform(final int in) {
-        // Color correction to make JM & Xaero colors match
-        Color c = new Color(in);
-        // I was doing some editing here but pushing the values over 255 only made it worse
-        return c.getRGB();
     }
 
     private void savePixel(final IronBlock pixel, final DataOutputStream out) throws IOException {
