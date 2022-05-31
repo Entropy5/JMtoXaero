@@ -27,17 +27,17 @@ public class JourneyMapToXaero {
             System.exit(1);
         }
 
-        int dimension = 0;
-        if (args.length > 2) {
-            dimension = Integer.parseInt(args[2]);
-        }
         String input = args[0];
         String output = args[1];
 
-        Path folderIn = new File(String.format("%s/DIM%d/", input, dimension)).toPath();
-        Path folderOut = new File(String.format("%s/%s/mw$default/", output, (dimension == 0 ? "null" : "DIM" + dimension))).toPath();
-
-        processDimension(folderIn, folderOut, dimension == -1);
+        if (!(args[2].equals("all"))) {
+            int dimension = Integer.parseInt(args[2]);
+            processDimension(input, output, dimension);
+        } else {
+            for (int i = -1; i < 2; i++) {
+                processDimension(input, output, i);
+            }
+        }
     }
 
     private static void processDimension(Path folderIn, Path folderOut, boolean nether) {
