@@ -22,28 +22,32 @@ public class JourneyMapToXaero {
 
     public static void main(final String[] args) {
         if (args.length < 2) {
-            System.err.println("usage: <input folder> <output folder>");
+            System.err.println("usage: <input folder> <output folder> (optional) <dimension id> <journeymap slice[0-15 or day/night/topo]>");
             System.exit(1);
         }
 
-        File folder_in = new File(args[0]);
-        File folder_out = new File(args[1]);
+        int dimension = 0;
+        String slice = "day";
+        if (args.length > 3) {
+            dimension = Integer.parseInt(args[2]);
+            slice = args[3];
+        }
 
-        Path dim_path_in = folder_in.toPath().resolve("DIM0\\day");
-        Path dim_path_out = folder_out.toPath().resolve("null\\mw$default");
+        Path folderIn = new File(String.format("%s/DIM%d/%s", args[0], dimension, slice)).toPath();
+        Path folderOut = new File((dimension == 0 ? "null" : "DIM" + dimension) + "mw$default").toPath();
 
-        File [] files = dim_path_in.toFile().listFiles();
+        File[] files = folderIn.toFile().listFiles();
         assert files != null;
         for (File file : files) {
             if (file.isFile()) {
                 String[] parts = file.getName().split("[.,]");
                 if (parts.length == 3 && parts[2].equals("png")) {
-                    // T O D O this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
+                    //TODO: this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
                     try {
                         int rx = Integer.parseInt(parts[0]);
                         int rz = Integer.parseInt(parts[1]);
                         String zipName = rx + "_" + rz + ".zip";
-                        File zipFile = dim_path_out.resolve(zipName).toFile();
+                        File zipFile = folderOut.resolve(zipName).toFile();
                         BufferedImage image = ImageIO.read(file);  // JourneyMap image IN
                         new JourneyMapToXaero().saveRegion(image, zipFile);
                         System.out.println("Converted " + file.toString().split("journeymap")[1] + " to " + zipFile.toString().split("XaeroWorldMap")[1]);
