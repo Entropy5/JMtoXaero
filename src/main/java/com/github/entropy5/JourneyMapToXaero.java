@@ -23,20 +23,18 @@ public class JourneyMapToXaero {
 
     public static void main(final String[] args) {
         if (args.length < 2) {
-            System.err.println("usage: <input folder> <output folder> (optional) <dimension id> <journeymap slice[0-15 or day/night/topo]>");
+            System.err.println("usage: <input folder> <output folder> (optional) <dimension id>");
             System.exit(1);
         }
 
         int dimension = 0;
-        String slice = "day";
-        if (args.length > 3) {
+        if (args.length > 2) {
             dimension = Integer.parseInt(args[2]);
-            slice = args[3];
         }
         String input = args[0];
         String output = args[1];
 
-        Path folderIn = new File(String.format("%s/DIM%d/%s", input, dimension, slice)).toPath();
+        Path folderIn = new File(String.format("%s/DIM%d/", input, dimension)).toPath();
         Path folderOut = new File(String.format("%s/%s/mw$default/", output, (dimension == 0 ? "null" : "DIM" + dimension))).toPath();
 
         processDimension(folderIn, folderOut, dimension == -1);
@@ -93,7 +91,8 @@ public class JourneyMapToXaero {
             return;
         }
 
-        // Overworld and End
+        // OverWorld and End
+        folderIn = folderIn.resolve("day");
         File[] files = folderIn.toFile().listFiles();
         if (files == null) {
             return;
