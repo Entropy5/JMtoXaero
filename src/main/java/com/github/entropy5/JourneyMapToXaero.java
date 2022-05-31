@@ -160,7 +160,6 @@ public class JourneyMapToXaero {
             }
         } catch (final IOException e) {
             e.printStackTrace();
-            System.out.println("IO exception while trying to save " + " " + e);
         }
     }
 
