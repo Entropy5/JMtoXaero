@@ -20,6 +20,7 @@ import java.util.zip.ZipOutputStream;
 
 
 public class JourneyMapToXaero {
+    public static HashMap<Integer,Integer> mapping = readMapping();
 
     public static void main(final String[] args) {
         if (args.length < 2) {
@@ -38,6 +39,34 @@ public class JourneyMapToXaero {
                 processDimension(input, output, i);
             }
         }
+    }
+
+    public static HashMap<Integer,Integer> readMapping() {
+        HashMap<Integer, Integer> mapping =  new HashMap<>();  // from color to blockstate id
+
+        try (BufferedReader br = new BufferedReader(new FileReader("D:\\GitHub\\journey2xaero\\blockstateidtocolor.csv"))) {
+            String line;
+            br.readLine();  // skip first
+            while ((line = br.readLine()) != null) {
+                String[] values = line.split(",");
+                mapping.put(Integer.parseInt(values[1]), Integer.parseInt(values[0]));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+//        System.out.println(mapping);
+        return mapping;
+    }
+
+    public static int getClosestColorBlock(int color) {
+        return mapping.entrySet().stream().min(Comparator.comparing(i -> calcDistance(i.getKey(), color >> 16 & 255, color >> 8 & 255, color & 255))).map(Map.Entry::getValue).orElse(0);
+    }
+
+    private static float calcDistance(final int color, final int r, final int g, final int b) {
+        final float rDist = r - (color >> 16 & 255);
+        final float gDist = g - (color >> 8 & 255);
+        final float bDist = b - (color & 255);
+        return rDist * rDist + gDist * gDist + bDist * bDist;
     }
 
     private static void processDimension(String input, String output, int dimension) {
@@ -164,7 +193,7 @@ public class JourneyMapToXaero {
         }
 
         public int getState() {
-            return 42;  // iron block seems to be the best blank slate to map color on, also the solution to life
+            return getClosestColorBlock(this.journeymapColor);  // iron block seems to be the best blank slate to map color on, also the solution to life
         }
 
         public int getNumberOfOverlays() {
@@ -180,7 +209,7 @@ public class JourneyMapToXaero {
         }
 
         public int getCustomColour() {
-            return this.journeymapColor;
+            return 0xFF000000;
         }
 
         public int getBiome() {
