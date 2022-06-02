@@ -165,7 +165,7 @@ public class JourneyMapToXaero {
 
         private final boolean nether;
 
-        private final int colourType = 3; // 3 for no complexity
+        private final int colourType =0; // 3 for no complexity
 
         public IronBlock(final int jmColor, boolean nether) {
             this.journeymapColor = jmColor;
