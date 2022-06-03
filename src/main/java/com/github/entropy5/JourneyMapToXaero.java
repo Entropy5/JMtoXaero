@@ -26,6 +26,8 @@ public class JourneyMapToXaero {
     static String blockToColorPath = "blockstateidtocolor_faithful.txt";  // "blockstateidtocolor.txt"
     public static final HashMap<Integer, Integer> COLOR_TO_STATE = readMapping(blockToColorPath); // THIS HAS TO BE color -> state
 
+    public static final HashMap<Integer, Integer> CLOSEST_COLOR = new HashMap<>();  // to cache results
+
     public static void main(final String[] args) {
         if (args.length < 1 || args.length == 2) {
             System.err.println("usage: <input folder> <output folder> <dimension id>");
@@ -55,12 +57,11 @@ public class JourneyMapToXaero {
                 String[] values = line.split(",");
                 int blockID = Integer.parseInt(values[0]);
                 int color = Integer.parseInt(values[1]);
-                if (color == -1) {
+                if (color == -1 || blockID == 122) {  // 122 is dragon egg, color too different
                     continue;  // Corrupting property
                 }
                 if (blockID == 2) {
                     color = -10914762;  // Manual grass color fix
-//                    System.out.println(color + " is " + new Color(color));
                 }
                 if (!mapping.containsKey(color)) {
                     mapping.put(color, blockID);
@@ -74,14 +75,23 @@ public class JourneyMapToXaero {
 
 
     public static int getClosestColor(int color) {
-        return COLOR_TO_STATE.keySet().stream().min(Comparator.comparing(i -> calcDistance(i, color >> 16 & 255, color >> 8 & 255, color & 255))).orElse(0);
+        if (CLOSEST_COLOR.containsKey(color)) {
+            try {
+                return CLOSEST_COLOR.get(color);
+            } catch (NullPointerException e) {
+                // oh well I guess this was a multithread issue
+            }
+        }
+        int result = COLOR_TO_STATE.keySet().stream().min(Comparator.comparing(i -> calcDistance(i, color >> 16 & 255, color >> 8 & 255, color & 255))).orElse(0);
+        CLOSEST_COLOR.put(color, result);
+        return result;
     }
 
     private static float calcDistance(final int currentColor, final int desiredRed, final int desiredGreen, final int desiredBlue) {
         final float rDist = desiredRed - (currentColor >> 16 & 255);
         final float gDist = desiredGreen - (currentColor >> 8 & 255);
         final float bDist = desiredBlue - (currentColor & 255);
-        return Math.abs(rDist) + Math.abs(gDist) + Math.abs(bDist);
+        return rDist * rDist + gDist * gDist + bDist * bDist;
     }
 
     private static void processDimension(String input, String output, int dimension) {
@@ -288,8 +298,10 @@ public class JourneyMapToXaero {
     }
 
     private static void savePixel(final IronBlock pixel, final DataOutputStream out) throws IOException {
-//        System.out.println("saving " + pixel.state + " with color " + pixel.jmColor + " converted to " + pixel.closestColor + "grass?" + !pixel.isNotGrass());
-//        System.out.println(new Color(pixel.jmColor) + " -> " + new Color(pixel.closestColor));
+//        if (pixel.state > 0 && new Color(pixel.closestColor).getRed() < 20 && new Color(pixel.closestColor).getBlue() < 20) {
+//            System.out.println("saving " + pixel.state + " with color " + pixel.jmColor + " converted to " + pixel.closestColor + " grass? " + !pixel.isNotGrass());
+//            System.out.println(new Color(pixel.jmColor) + " -> " + new Color(pixel.closestColor));
+//        }
         final int parameters = pixel.getParameters();
         out.writeInt(parameters);
         if (pixel.isNotGrass()) {
