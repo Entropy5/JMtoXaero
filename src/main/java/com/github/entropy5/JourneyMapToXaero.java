@@ -245,10 +245,6 @@ public class JourneyMapToXaero {
             return 0;
         }
 
-        public Map<Object, Object> getOverlays() {
-            return Collections.emptyMap();
-        }
-
         public int getColourType() {
             return this.colourType; // ig
         }
@@ -286,11 +282,26 @@ public class JourneyMapToXaero {
                         out.write(o << 4 | p);
                         for (int i = 0; i < 4; ++i) {
                             for (int j = 0; j < 4; ++j) {
+                                int voidCount = 0;
+                                int[][] rgbChunk = new int[16][16];
                                 for (int x = 0; x < 16; ++x) {
                                     for (int z = 0; z < 16; ++z) {
                                         int relX = 64 * o + 16 * i + x;
                                         int relZ = 64 * p + 16 * j + z;
-                                        savePixel(new IronBlock(image.getRGB(relX, relZ), nether), out);
+                                        int color = image.getRGB(relX, relZ);
+                                        rgbChunk[x][z] = color;
+                                        if (color == 0) {
+                                            voidCount++;
+                                        }
+                                    }
+                                }
+                                if (voidCount == 16 * 16) {
+                                    out.writeInt(-1);
+                                    continue;
+                                }
+                                for (int x = 0; x < 16; ++x) {
+                                    for (int z = 0; z < 16; ++z) {
+                                        savePixel(new IronBlock(rgbChunk[x][z], nether), out);
                                     }
                                 }
                                 out.write(0); // some version thing
@@ -321,9 +332,6 @@ public class JourneyMapToXaero {
         }
 
         int biome;
-        if (pixel.getNumberOfOverlays() != 0) {
-            out.write(pixel.getOverlays().size());
-        }
 
         if (pixel.getColourType() == 3) {
             out.writeInt(pixel.getCustomColour());
