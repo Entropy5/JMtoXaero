@@ -44,12 +44,19 @@ public class JourneyMapToXaero {
     public static HashMap<Integer,Integer> readMapping() {
         HashMap<Integer, Integer> mapping =  new HashMap<>();  // from color to blockstate id
 
-        try (BufferedReader br = new BufferedReader(new FileReader("D:\\GitHub\\journey2xaero\\blockstateidtocolor.csv"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader("D:\\GitHub\\journey2xaero\\blockstateidtocolor_faithful.txt"))) {
             String line;
-            br.readLine();  // skip first
             while ((line = br.readLine()) != null) {
                 String[] values = line.split(",");
-                mapping.put(Integer.parseInt(values[1]), Integer.parseInt(values[0]));
+                int blockID = Integer.parseInt(values[0]);
+                int color = Integer.parseInt(values[1]);
+                if (color == -1) {
+                    continue;
+                }
+                if (blockID == 2) {
+                    color = -9079717;  // Manual grass color fix, was required both on vanilla and faithful
+                }
+                mapping.put(color, blockID);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -62,11 +69,13 @@ public class JourneyMapToXaero {
         return mapping.entrySet().stream().min(Comparator.comparing(i -> calcDistance(i.getKey(), color >> 16 & 255, color >> 8 & 255, color & 255))).map(Map.Entry::getValue).orElse(0);
     }
 
-    private static float calcDistance(final int color, final int r, final int g, final int b) {
-        final float rDist = r - (color >> 16 & 255);
-        final float gDist = g - (color >> 8 & 255);
-        final float bDist = b - (color & 255);
-        return rDist * rDist + gDist * gDist + bDist * bDist;
+    private static float calcDistance(final int currentColor, final int desiredRed, final int desiredGreen, final int desiredBlue) {
+        final float rDist = desiredRed - (currentColor >> 16 & 255);
+        final float gDist = desiredGreen - (currentColor >> 8 & 255);
+        final float bDist = desiredBlue - (currentColor & 255);
+        float result = Math.abs(rDist) + Math.abs(gDist) + Math.abs(bDist);
+//        return rDist * rDist + gDist * gDist + bDist * bDist;
+        return result;
     }
 
     private static void processDimension(String input, String output, int dimension) {
@@ -178,7 +187,7 @@ public class JourneyMapToXaero {
             int height = 64;
             int parameters = (0);
             int light = this.nether ? 15 : 0;
-            parameters |= this.isNotGrass() ? 1 : 0;
+            parameters |= !this.isGrass() ? 1 : 0;
             parameters |= this.getNumberOfOverlays() != 0 ? 2 : 0;
             parameters |= colourTypeToWrite << 2;
             parameters |= light << 8;
@@ -188,12 +197,12 @@ public class JourneyMapToXaero {
             return parameters;
         }
 
-        public boolean isNotGrass() {
-            return true;
+        public boolean isGrass() {
+            return (this.state & -65536) == 0 && (this.state & 4095) == 2;
         }
 
         public int getState() {
-            return getClosestColorBlock(this.journeymapColor);  // iron block seems to be the best blank slate to map color on, also the solution to life
+            return state;
         }
 
         public int getNumberOfOverlays() {
