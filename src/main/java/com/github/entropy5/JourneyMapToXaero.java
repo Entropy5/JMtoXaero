@@ -61,12 +61,13 @@ public class JourneyMapToXaero {
                     continue;  // Corrupting property
                 }
                 if (blockID == 2) {
-                    color = -10914762;  // Manual grass color fix
+                    color = -10914762;  // Manual grass color fix, might have to add more grass entries
                 }
-                if (!mapping.containsKey(color)) {
+                if (!mapping.containsKey(color) || blockID < mapping.get(color)) {  // Ensure lowest blockID that matches
                     mapping.put(color, blockID);
                 }
             }
+//            System.out.println(mapping);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -82,7 +83,7 @@ public class JourneyMapToXaero {
                 // oh well I guess this was a multithread issue
             }
         }
-        int result = COLOR_TO_STATE.keySet().stream().min(Comparator.comparing(i -> calcDistance(i, color >> 16 & 255, color >> 8 & 255, color & 255))).orElse(0);
+        int result = COLOR_TO_STATE.keySet().stream().min(Comparator.comparing(i -> colorDistance(new Color(i), new Color(color)))).orElse(0);
         CLOSEST_COLOR.put(color, result);
         return result;
     }
@@ -92,6 +93,17 @@ public class JourneyMapToXaero {
         final float gDist = desiredGreen - (currentColor >> 8 & 255);
         final float bDist = desiredBlue - (currentColor & 255);
         return rDist * rDist + gDist * gDist + bDist * bDist;
+    }
+
+    private static double colorDistance(Color c1, Color c2)  // https://stackoverflow.com/a/6334454/14748354
+    {
+        int red1 = c1.getRed();
+        int red2 = c2.getRed();
+        int rMean = (red1 + red2) >> 1;
+        int r = red1 - red2;
+        int g = c1.getGreen() - c2.getGreen();
+        int b = c1.getBlue() - c2.getBlue();
+        return Math.sqrt((((512+rMean)*r*r)>>8) + 4*g*g + (((767-rMean)*b*b)>>8));
     }
 
     private static void processDimension(String input, String output, int dimension) {
@@ -298,7 +310,7 @@ public class JourneyMapToXaero {
     }
 
     private static void savePixel(final IronBlock pixel, final DataOutputStream out) throws IOException {
-//        if (pixel.state > 0 && new Color(pixel.closestColor).getRed() < 20 && new Color(pixel.closestColor).getBlue() < 20) {
+//        if (pixel.state > 0 && new Color(pixel.closestColor).getRed() < 50 && new Color(pixel.closestColor).getBlue() < 50) {
 //            System.out.println("saving " + pixel.state + " with color " + pixel.jmColor + " converted to " + pixel.closestColor + " grass? " + !pixel.isNotGrass());
 //            System.out.println(new Color(pixel.jmColor) + " -> " + new Color(pixel.closestColor));
 //        }
