@@ -23,7 +23,7 @@ import java.util.zip.ZipOutputStream;
 
 
 public class JourneyMapToXaero {
-    static String blockToColorPath = "blockstateidtocolor_faithful.txt";  // "blockstateidtocolor.txt"
+    static String blockToColorPath = "blockstateidtocolor.txt";
     public static final HashMap<Integer, Integer> COLOR_TO_STATE = readMapping(blockToColorPath); // THIS HAS TO BE color -> state
 
     public static final HashMap<Integer, Integer> CLOSEST_COLOR = new HashMap<>();  // to cache results
