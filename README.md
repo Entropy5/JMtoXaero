@@ -2,6 +2,10 @@
 
 Tool to convert [JourneyMap](https://www.curseforge.com/minecraft/mc-mods/journeymap) tiles to regions used by [Xaero's World Map](https://chocolateminecraft.com/worldmap.php)
 
+Visual difference is significant, since we are just guessing the block ID from the Journeymap color, and the colors are complicated by height level, shading, transparency, and biomes.
+![Journeymap to Xaero mapping visualization](https://i.imgur.com/LP8HuKX.png)
+
+
 Usage: 
 
 `java -jar JMtoXaero.jar <input folder> <output folder> <dimension> (-1, 0, 1, all)`
@@ -9,8 +13,6 @@ Usage:
 Input folder should point to your journeymap singleplayer or multiplayer data folder, where DIM0 etc resides.
 
 Example input:
-`.minecraft/journeymap/data/mp/2b2t/`
-or 
 `.minecraft/journeymap/data/sp/2b2t_256k²_spawn_download/`
 
 Output folder should point to your XaeroWorldMap folder + server or singleplayer listing.
@@ -21,7 +23,4 @@ Example output:
 
 Full command example:
 
-`java -jar JMtoXaero-1.0.jar ".minecraft\journeymap\data\mp\2b2t" ".minecraft\XaeroWorldMap\Multiplayer_2b2t.org" 0`
-
 `java -jar JMtoXaero-1.0.jar ".minecraft\journeymap\data\mp\2b2t" ".minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
-
