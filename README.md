@@ -13,7 +13,9 @@
 
 # Usage
 
-`java -jar JMtoXaero.jar <input folder> <output folder> <dimension> (-1, 0, 1, all)`
+Download the latest jar from releases
+
+`java -jar JMtoXaero-2.0.jar <input folder> <output folder> <dimension> (-1, 0, 1, all)`
 
 Input folder should point to your journeymap singleplayer or multiplayer data folder, where DIM0 etc resides.
 
@@ -28,4 +30,4 @@ Example output:
 
 # Full command example
 
-`java -jar JMtoXaero-1.0.jar ".minecraft\journeymap\data\mp\2b2t" ".minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
+`java -jar JMtoXaero-2.0.jar ".minecraft\journeymap\data\mp\2b2t" ".minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
