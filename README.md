@@ -8,6 +8,7 @@
 
 - Reads images from the Journeymap folder
 - Writes Xaero regions that are relevant for multiplayer maps (Singleplayer maps don't need this conversion, Xaero's mod will just automap everything over time)
+- Confirmed to work with XaerosWorldMap_1.22.0_Forge_1.12.jar
 - Uses the Journeymap colormapping to decode what block likely generated each pixel
 - Visual difference is significant, as Journeymap pixel colors are also affected by height level, shading, transparency, and biomes
 
