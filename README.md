@@ -1,12 +1,17 @@
 # JMtoXaero
 
-Tool to convert [JourneyMap](https://www.curseforge.com/minecraft/mc-mods/journeymap) tiles to regions used by [Xaero's World Map](https://chocolateminecraft.com/worldmap.php)
+**JMtoXaero** is a tool to convert [JourneyMap](https://www.curseforge.com/minecraft/mc-mods/journeymap) tiles to regions used by [Xaero's World Map](https://chocolateminecraft.com/worldmap.php)
 
-Visual difference is significant, since we are just guessing the block ID from the Journeymap color, and the colors are complicated by height level, shading, transparency, and biomes.
 ![Journeymap to Xaero mapping visualization](https://i.imgur.com/LP8HuKX.png)
 
+# Description 
 
-Usage: 
+- Reads images from the Journeymap folder
+- Writes Xaero regions that are relevant for multiplayer maps (Singleplayer maps don't need this conversion, Xaero's mod will just automap everything over time)
+- Uses the Journeymap colormapping to decode what block likely generated each pixel
+- Visual difference is significant, as Journeymap pixel colors are also affected by height level, shading, transparency, and biomes
+
+# Usage
 
 `java -jar JMtoXaero.jar <input folder> <output folder> <dimension> (-1, 0, 1, all)`
 
@@ -21,6 +26,6 @@ Example output:
 `.minecraft/XaeroWorldMap/Multiplayer_connect.2b2t.org/`
 
 
-Full command example:
+# Full command example
 
 `java -jar JMtoXaero-1.0.jar ".minecraft\journeymap\data\mp\2b2t" ".minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
