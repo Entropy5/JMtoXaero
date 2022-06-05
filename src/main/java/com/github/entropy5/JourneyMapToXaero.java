@@ -1,12 +1,9 @@
 package com.github.entropy5;
 
-import com.sun.jndi.toolkit.url.UrlUtil;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -24,9 +21,10 @@ import java.util.zip.ZipOutputStream;
 
 public class JourneyMapToXaero {
     static String blockToColorPath = "blockstateidtocolor.txt";
+    public static final HashSet<Integer> LEAVES = new HashSet<>(Arrays.asList(161, 49170, 24594, 32929, 8210, 18, 57362, 53409, 4257, 16402, 20641, 49313, 32786, 37025, 16545, 40978));
     public static final HashMap<Integer, Integer> COLOR_TO_STATE = readMapping(blockToColorPath); // THIS HAS TO BE color -> state
-
     public static final HashMap<Integer, Integer> CLOSEST_COLOR = new HashMap<>();  // to cache results
+    public static final HashMap<Integer, Integer> COUNTS = new HashMap<>();  // debug
 
     public static void main(final String[] args) {
         if (args.length < 1 || args.length == 2) {
@@ -46,7 +44,6 @@ public class JourneyMapToXaero {
         }
     }
 
-
     public static HashMap<Integer, Integer> readMapping(String blockToColorPath) {
         HashMap<Integer, Integer> mapping = new HashMap<>();  // from color to blockstate id
         InputStream is = JourneyMapToXaero.class.getClassLoader().getResourceAsStream(blockToColorPath);
@@ -61,8 +58,13 @@ public class JourneyMapToXaero {
                     continue;  // Corrupting property
                 }
                 if (blockID == 2) {
-                    color = -10914762;  // Manual grass color fix, might have to add more grass entries
+                    color = -10914762;  // Manual gray grass color fix
                 }
+
+                if (LEAVES.contains(blockID)) {
+                    color = -14399980;  // Manual gray leaves color fix
+                }
+
                 if (!mapping.containsKey(color) || blockID < mapping.get(color)) {  // Ensure lowest blockID that matches
                     mapping.put(color, blockID);
                 }
@@ -321,9 +323,12 @@ public class JourneyMapToXaero {
     }
 
     private static void savePixel(final IronBlock pixel, final DataOutputStream out) throws IOException {
-//        if (pixel.state > 0 && new Color(pixel.closestColor).getRed() < 50 && new Color(pixel.closestColor).getBlue() < 50) {
+//        if (!COUNTS.containsKey(pixel.jmColor)) {
+//            COUNTS.put(pixel.jmColor, 1);
 //            System.out.println("saving " + pixel.state + " with color " + pixel.jmColor + " converted to " + pixel.closestColor + " grass? " + !pixel.isNotGrass());
 //            System.out.println(new Color(pixel.jmColor) + " -> " + new Color(pixel.closestColor));
+//        } else {
+//            COUNTS.put(pixel.jmColor, COUNTS.get(pixel.jmColor) + 1);
 //        }
         final int parameters = pixel.getParameters();
         out.writeInt(parameters);
