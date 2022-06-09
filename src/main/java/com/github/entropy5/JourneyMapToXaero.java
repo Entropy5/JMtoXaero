@@ -27,9 +27,16 @@ public class JourneyMapToXaero {
     public static final HashMap<Integer, Integer> COUNTS = new HashMap<>();  // debug
 
     public static void main(final String[] args) {
-        if (args.length < 1 || args.length == 2) {
-            System.err.println("usage: <input folder> <output folder> <dimension id>");
+        if (args.length < 3) {
+            System.err.println("usage: <input folder> <output folder> <dimension> (-1, 0, 1, all)");
             System.exit(1);
+        }
+
+        // override block to color mapping
+        if (args.length > 3 && args[3].startsWith("-m=")) {
+            String mapping = args[3].split("-m=")[1];
+            blockToColorPath = mapping;
+            System.out.println("using " + mapping + " as block to color mapping.");
         }
 
         String input = args[0];
