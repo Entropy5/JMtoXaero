@@ -10,3 +10,13 @@ Mappings for some of the most popular resource packs can be found in [the mappin
 ## Generating your own mappings
 With [bsdiff](https://github.com/mendsley/bsdiff) or [jbsdiff](https://github.com/malensek/jbsdiff) you can apply a patch to JourneyMap to make it write the mappings for you.
 Just run `bsdiff patch <original journeymap.jar> <new journeymap.jar> jmpatch.diff` and it will create a new JourneyMap jar which will write the mappings to the file "mappings.txt" in your root .minecraft directory when you disconnect from a server.
+
+`jmpatch.diff` will add the following lines to journeymap/client/forge/event/WorldEventHandler:
+
+```java
+FileWriter fw = new FileWriter(new File("./mappings.txt"));
+for (BlockMD block : BlockMD.getAll()) {
+     fw.write(Block.func_176210_f(block.getBlockState()) + "," + block.getTextureColor() + "\n");
+}
+fw.close();
+```
