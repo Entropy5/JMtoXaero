@@ -22,15 +22,24 @@ import java.util.zip.ZipOutputStream;
 public class JourneyMapToXaero {
     static String blockToColorPath = "blockstateidtocolor.txt";
     public static final HashSet<Integer> LEAVES = new HashSet<>(Arrays.asList(161, 49170, 24594, 32929, 8210, 18, 57362, 53409, 4257, 16402, 20641, 49313, 32786, 37025, 16545, 40978));
-    public static final HashMap<Integer, Integer> COLOR_TO_STATE = readMapping(blockToColorPath); // THIS HAS TO BE color -> state
+    public static final HashMap<Integer, Integer> COLOR_TO_STATE = new HashMap<>(); // THIS HAS TO BE color -> state
     public static final HashMap<Integer, Integer> CLOSEST_COLOR = new HashMap<>();  // to cache results
     public static final HashMap<Integer, Integer> COUNTS = new HashMap<>();  // debug
 
     public static void main(final String[] args) {
-        if (args.length < 1 || args.length == 2) {
-            System.err.println("usage: <input folder> <output folder> <dimension id>");
+        if (args.length < 3) {
+            System.err.println("usage: <input folder> <output folder> <dimension> (-1, 0, 1, all)");
             System.exit(1);
         }
+
+        // override block to color mapping
+        if (args.length > 3 && args[3].startsWith("-m=")) {
+            String mapping = args[3].split("-m=")[1];
+            blockToColorPath = mapping;
+            System.out.println("using " + mapping + " as block to color mapping.");
+        }
+
+        COLOR_TO_STATE.putAll(readMapping(blockToColorPath));
 
         String input = args[0];
         String output = args[1];

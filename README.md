@@ -32,3 +32,6 @@ Example output:
 # Full command example
 
 `java -jar JMtoXaero-2.0.jar ".minecraft\journeymap\data\mp\2b2t" ".minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
+
+**Used journeymap with a resourcepack other than vanilla?**
+[Read here](./MAPPINGS.md)
