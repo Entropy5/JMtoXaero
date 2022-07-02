@@ -6,6 +6,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -26,7 +27,7 @@ public class JourneyMapToXaero {
     public static final HashMap<Integer, Integer> CLOSEST_COLOR = new HashMap<>();  // to cache results
     public static final HashMap<Integer, Integer> COUNTS = new HashMap<>();  // debug
 
-    public static void main(final String[] args) {
+    public static void main(final String[] args) throws IOException {
         if (args.length < 3) {
             System.err.println("usage: <input folder> <output folder> <dimension> (-1, 0, 1, all)");
             System.exit(1);
@@ -53,9 +54,13 @@ public class JourneyMapToXaero {
         }
     }
 
-    public static HashMap<Integer, Integer> readMapping(String blockToColorPath) {
+    public static HashMap<Integer, Integer> readMapping(String blockToColorPath) throws IOException {
         HashMap<Integer, Integer> mapping = new HashMap<>();  // from color to blockstate id
         InputStream is = JourneyMapToXaero.class.getClassLoader().getResourceAsStream(blockToColorPath);
+
+        if (is == null) {
+            is = Files.newInputStream(Paths.get(blockToColorPath));
+        }
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             String line;
