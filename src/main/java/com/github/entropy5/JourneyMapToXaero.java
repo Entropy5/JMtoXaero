@@ -216,9 +216,9 @@ public class JourneyMapToXaero {
             this.closestColor = getClosestColor(jmColor);
             this.nether = nether;
             this.state = COLOR_TO_STATE.get(this.closestColor);
-            colourType = 0;
+            this.colourType = 0;
             this.color = 0xFF000000;  // xaeros custom color
-            biome = 1;// plains
+            this.biome = 1;// plains
         }
 
         public int getParameters() {
