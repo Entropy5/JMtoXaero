@@ -3,16 +3,35 @@ plugins {
 }
 
 group 'com.github.entropy5'
-version '2.0'
+version '2.1'
 
 repositories {
     mavenCentral()
 }
 
+configurations {
+    shade
+    compile.extendsFrom shade
+}
+
+dependencies {
+    shade 'br.com.gamemods:region-manipulator:2.0.0'
+}
+
 jar {
+    from {
+        configurations.shade.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }.unique()
+    } {
+        exclude "META-INF/**"
+        exclude sourceSets.main.output.asFileTree.collect {
+            return it.getPath().split("java/main/").last()
+        }
+    }
     manifest {
         attributes "Implementation-Title": "entropy5",
-                "Implementation-Version": "2.0",
+                "Implementation-Version": "2.1",
                 "Main-Class": "com.github.entropy5.JourneyMapToXaero"
     }
 }
