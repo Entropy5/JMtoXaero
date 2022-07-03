@@ -28,6 +28,8 @@ Output folder should point to your XaeroWorldMap folder + server or singleplayer
 Example output:
 `C:/appdata/.minecraft/XaeroWorldMap/Multiplayer_connect.2b2t.org/`
 
+Within the input folder, DIM0 is overworld, DIM1 is end, and DIM-1 is nether. Use the last argument to select a dimension or 'all' to process them all.
+
 
 # Full command example
 
