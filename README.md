@@ -21,17 +21,17 @@ Download the latest jar from releases
 Input folder should point to your journeymap singleplayer or multiplayer data folder, where DIM0 etc resides.
 
 Example input:
-`.minecraft/journeymap/data/sp/2b2t_256k²_spawn_download/`
+`C:/appdata/.minecraft/journeymap/data/sp/2b2t_256k²_spawn_download/`
 
 Output folder should point to your XaeroWorldMap folder + server or singleplayer listing.
 
 Example output:
-`.minecraft/XaeroWorldMap/Multiplayer_connect.2b2t.org/`
+`C:/appdata/.minecraft/XaeroWorldMap/Multiplayer_connect.2b2t.org/`
 
 
 # Full command example
 
-`java -jar JMtoXaero-2.0.jar ".minecraft\journeymap\data\mp\2b2t" ".minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
+`java -jar JMtoXaero-2.0.jar "C:\appdata\.minecraft\journeymap\data\mp\2b2t" "C:\appdata\.minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
 
 **Used journeymap with a resourcepack other than vanilla?**
 [Read here](./MAPPINGS.md)
