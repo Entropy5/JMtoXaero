@@ -25,7 +25,6 @@ public class JourneyMapToXaero {
     public static final HashSet<Integer> LEAVES = new HashSet<>(Arrays.asList(161, 49170, 24594, 32929, 8210, 18, 57362, 53409, 4257, 16402, 20641, 49313, 32786, 37025, 16545, 40978));
     public static final HashMap<Integer, Integer> COLOR_TO_STATE = new HashMap<>(); // THIS HAS TO BE color -> state
     public static final HashMap<Integer, Integer> CLOSEST_COLOR = new HashMap<>();  // to cache results
-    public static final HashMap<Integer, Integer> COUNTS = new HashMap<>();  // debug
 
     public static void main(final String[] args) throws IOException {
         if (args.length < 3) {
@@ -102,13 +101,6 @@ public class JourneyMapToXaero {
         int result = COLOR_TO_STATE.keySet().stream().min(Comparator.comparing(i -> colorDistance(new Color(i), new Color(color)))).orElse(0);
         CLOSEST_COLOR.put(color, result);
         return result;
-    }
-
-    private static float calcDistance(final int currentColor, final int desiredRed, final int desiredGreen, final int desiredBlue) {
-        final float rDist = desiredRed - (currentColor >> 16 & 255);
-        final float gDist = desiredGreen - (currentColor >> 8 & 255);
-        final float bDist = desiredBlue - (currentColor & 255);
-        return rDist * rDist + gDist * gDist + bDist * bDist;
     }
 
     private static double colorDistance(Color c1, Color c2)  // https://stackoverflow.com/a/6334454/14748354
@@ -339,13 +331,6 @@ public class JourneyMapToXaero {
     }
 
     private static void savePixel(final IronBlock pixel, final DataOutputStream out) throws IOException {
-//        if (!COUNTS.containsKey(pixel.jmColor)) {
-//            COUNTS.put(pixel.jmColor, 1);
-//            System.out.println("saving " + pixel.state + " with color " + pixel.jmColor + " converted to " + pixel.closestColor + " grass? " + !pixel.isNotGrass());
-//            System.out.println(new Color(pixel.jmColor) + " -> " + new Color(pixel.closestColor));
-//        } else {
-//            COUNTS.put(pixel.jmColor, COUNTS.get(pixel.jmColor) + 1);
-//        }
         final int parameters = pixel.getParameters();
         out.writeInt(parameters);
         if (pixel.isNotGrass()) {
