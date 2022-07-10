@@ -172,8 +172,9 @@ public class JourneyMapToXaero {
                     String[] parts = region.split("[.,]");
                     processRegion(true, folderOut, combined, parts, fileList.get(0));
 
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    System.out.println(fileList);
+                    e.printStackTrace();
                 }
             });
             return;
@@ -188,10 +189,11 @@ public class JourneyMapToXaero {
                     BufferedImage image;
                     try {
                         image = ImageIO.read(file);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        processRegion(false, folderOut, image, parts, file);
+                    } catch (Exception e) {
+                        System.out.println(file.getName());
+                        e.printStackTrace();
                     }
-                    processRegion(false, folderOut, image, parts, file);
                 });
     }
 
