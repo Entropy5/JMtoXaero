@@ -192,17 +192,12 @@ public class JourneyMapToXaero {
     private static void processRegion(boolean nether, Path dimPathOut, BufferedImage file, String[] parts, File location) {
         if (parts.length == 3 && parts[2].equals("png")) {
             //TODO: this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
-            try {
-                int rx = Integer.parseInt(parts[0]);
-                int rz = Integer.parseInt(parts[1]);
-                String zipName = rx + "_" + rz + ".zip";
-                File zipFile = dimPathOut.resolve(zipName).toFile();
-                new JourneyMapToXaero().saveRegion(file, zipFile, nether);
-                System.out.println("Converted " + location.toString().split("journeymap")[1] + " to " + zipFile.toString().split("XaeroWorldMap")[1]);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            int rx = Integer.parseInt(parts[0]);
+            int rz = Integer.parseInt(parts[1]);
+            String zipName = rx + "_" + rz + ".zip";
+            File zipFile = dimPathOut.resolve(zipName).toFile();
+            new JourneyMapToXaero().saveRegion(file, zipFile, nether);
+            System.out.println("Converted " + location.toString().split("journeymap")[1] + " to " + zipFile.toString().split("XaeroWorldMap")[1]);
         }
     }
 
