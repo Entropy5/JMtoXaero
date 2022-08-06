@@ -1,8 +1,6 @@
 # JMtoXaero
 
-**JMtoXaero** is a tool to convert [JourneyMap](https://www.curseforge.com/minecraft/mc-mods/journeymap) tiles to regions used by [Xaero's World Map](https://chocolateminecraft.com/worldmap.php)
-
-[Video guide](https://www.youtube.com/watch?v=-SiCD_DgfHE)
+**JMtoXaero** is a tool to convert [JourneyMap](https://www.curseforge.com/minecraft/mc-mods/journeymap) tiles to regions used by [Xaero's World Map](https://chocolateminecraft.com/worldmap.php)  -  [Video guide](https://www.youtube.com/watch?v=-SiCD_DgfHE)
 
 ![Journeymap to Xaero mapping visualization](https://i.imgur.com/LP8HuKX.png)
 
