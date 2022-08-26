@@ -1,6 +1,6 @@
 # JMtoXaero
 
-**JMtoXaero** is a tool to convert [JourneyMap](https://www.curseforge.com/minecraft/mc-mods/journeymap) tiles to regions used by [Xaero's World Map](https://chocolateminecraft.com/worldmap.php)  -  [Video guide](https://www.youtube.com/watch?v=-SiCD_DgfHE)
+**JMtoXaero** is a tool to convert [JourneyMap](https://www.curseforge.com/minecraft/mc-mods/journeymap) tiles to regions used by [Xaero's World Map](https://chocolateminecraft.com/worldmap.php)  -  Watch the [video guide](https://www.youtube.com/watch?v=-SiCD_DgfHE)
 
 ![Journeymap to Xaero mapping visualization](https://i.imgur.com/LP8HuKX.png)
 
@@ -14,9 +14,9 @@
 
 # Usage
 
-Download the latest jar from releases
+Download the latest jar from releases  ([video guide](https://www.youtube.com/watch?v=-SiCD_DgfHE))
 
-`java -jar JMtoXaero-2.0.jar <input folder> <output folder> <dimension> (-1, 0, 1, all)`
+`java -jar JMtoXaero-2.1.jar <input folder> <output folder> <dimension> (-1, 0, 1, all)`
 
 Input folder should point to your journeymap singleplayer or multiplayer data folder, where DIM0 etc resides.
 
@@ -33,7 +33,7 @@ Within the input folder, DIM0 is overworld, DIM1 is end, and DIM-1 is nether. Us
 
 # Full command example
 
-`java -jar JMtoXaero-2.0.jar "C:\appdata\.minecraft\journeymap\data\mp\2b2t" "C:\appdata\.minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
+`java -jar JMtoXaero-2.1.jar "C:\appdata\.minecraft\journeymap\data\mp\2b2t" "C:\appdata\.minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
 
 **Used journeymap with a resourcepack other than vanilla?**
 [Read here](./MAPPINGS.md)
