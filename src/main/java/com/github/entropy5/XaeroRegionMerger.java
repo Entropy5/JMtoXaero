@@ -1,13 +1,18 @@
 package com.github.entropy5;
 
-import java.io.File;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 public class XaeroRegionMerger {
+
+    static int counter = 0;
 
     public static void main(String[] args) {
         // First folder gets pixel priority, put the important stuff here
@@ -28,22 +33,200 @@ public class XaeroRegionMerger {
         System.out.println("Only present in second: " + onlySecond);
         copyFull(secondFolderIn, folderOut, onlySecond);
 
-        firstSet.retainAll(secondSet);  // Intersection
+        HashSet<String> inter = new HashSet<>(firstSet);
+        inter.retainAll(secondSet);  // Intersection
+        System.out.println("Need to deep merge: " + inter);
+        deepMerge(firstFolderIn, secondFolderIn, folderOut, inter);
+
     }
+
+    private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames) {
+        for (String rName : rNames) {
+            System.out.println("Merging " + rName);
+            File fileIn1 = inp1.resolve(rName).toFile();
+            File fileIn2 = inp2.resolve(rName).toFile();
+            File fileOut = outp.resolve(rName).toFile();
+            DataInputStream in = null;
+            DataInputStream in2 = null;
+            DataOutputStream out = null;
+            int saveVersion = -1;
+            try {
+                try {
+                    ZipInputStream zipIn1 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn1.toPath()), 2048));
+                    ZipInputStream zipIn2 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn2.toPath()), 2048));
+                    in = new DataInputStream(zipIn1);
+                    in2 = new DataInputStream(zipIn2);
+                    zipIn1.getNextEntry();
+                    zipIn2.getNextEntry();
+
+                    final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(fileOut.toPath())));
+                    out = new DataOutputStream(zipOut);
+                    final ZipEntry e = new ZipEntry("region.xaero");
+                    zipOut.putNextEntry(e);
+                    out.write(255);  // mimicking logic from Xaero format
+                    out.writeInt(4);
+
+
+                    int firstByte = in.read();
+                    if (firstByte == 255) {
+                        saveVersion = in.readInt();
+                        if (4 < saveVersion) {
+                            zipIn1.closeEntry();
+                            in.close();
+                            throw new RuntimeException(rName + " made using newer xaero version");
+                        }
+                        firstByte = -1;
+                    }
+                    int p;
+
+                    while (true) {  // Keeps reading TileChunks (max 8x8) until done
+                        int chunkCoords = firstByte == -1 ? in.read() : firstByte;
+                        System.out.println("ChunkCoords: " + chunkCoords);
+                        if (chunkCoords == -1) {
+                            zipIn1.closeEntry();
+                            break;
+                        }
+
+                        firstByte = -1;
+                        int o = chunkCoords >> 4;
+                        p = chunkCoords & 15;
+                        System.out.println("Chunk: " + o + "," + p);
+
+                        for (int i = 0; i < 4; ++i) {
+                            for (int j = 0; j < 4; ++j) {
+                                Integer nextTile = in.readInt();
+                                if (nextTile != -1) {  // Skip empty chunk
+                                    for (int x = 0; x < 16; ++x) {
+                                        for (int z = 0; z < 16; ++z) {
+                                            passPixel(nextTile, in, out, saveVersion, true);
+                                            nextTile = null;
+                                        }
+                                    }
+                                } else {
+                                    System.out.println("Empty chunk " + o + "," + p + "," + i + "," + j);
+                                }
+                            }
+                        }
+                    }
+                } finally {
+                    if (in != null) {
+                        in.close();
+                    }
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+    private static void passPixel(Integer next, DataInputStream in, DataOutputStream out, int saveVersion, boolean write) throws IOException {
+        int parametres;
+        if (next != null) {
+            parametres = next;
+        } else {
+            parametres = in.readInt();
+            if (write) {
+                out.writeInt(parametres);
+            }
+        }
+
+        if ((parametres & 1) != 0) {
+            int state = in.readInt();
+//            System.out.println("counter: " + counter + " - state: " + state);
+            counter++;
+            if (write) {
+                out.writeInt(state);
+            }
+        }
+
+        if ((parametres & 64) != 0) {
+            int height = in.read();
+            if (write) {
+                out.write(height);
+            }
+        }
+        int savedColourType;
+        int biomeKey;
+        if ((parametres & 2) != 0) {
+            savedColourType = in.read();
+            if (write) {
+                out.write(savedColourType);
+            }
+
+            for(biomeKey = 0; biomeKey < savedColourType; ++biomeKey) {
+                passOverlay(in, out, saveVersion, write);
+            }
+        }
+        savedColourType = parametres >> 2 & 3;
+        if (savedColourType == 3) {
+            int customColour = in.readInt();
+            if (write) {
+                out.writeInt(customColour);
+            }
+        }
+
+        biomeKey = -1;
+        if (savedColourType != 0 && savedColourType != 3 || (parametres & 1048576) != 0) {
+            int biomeByte = in.read();
+            if (write) {
+                out.write(biomeByte);
+            }
+            if (saveVersion >= 3 && biomeByte >= 255) {
+                biomeKey = in.readInt();
+                if (write) {
+                    out.writeInt(biomeKey);
+                }
+            }
+        }
+    }
+
+
+    private static void passOverlay(DataInputStream in, DataOutputStream out, int saveVersion, boolean write) throws IOException {
+        int parametres = in.readInt();
+        int state;
+        if ((parametres & 1) != 0) {
+            state = in.readInt();
+            if (write) {
+                out.writeInt(state);
+            }
+        }
+        int opacity = 1;
+        if (saveVersion < 1 && (parametres & 2) != 0) {
+            int something = in.readInt();
+            if (write) {
+                out.writeInt(something);
+            }
+        }
+        byte savedColourType = (byte)(parametres >> 8 & 3);
+        if (savedColourType == 2 || (parametres & 4) != 0) {
+            int biomeBuffer = in.readInt();
+            if (write) {
+                out.writeInt(biomeBuffer);
+            }
+        }
+        if ((parametres & 8) != 0) {
+            opacity = in.readInt();
+            if (write) {
+                out.writeInt(opacity);
+            }
+        }
+    }
+
 
     private static void copyFull(Path folderIn, Path folderOut, HashSet<String> regionSet) {
         for (String s : regionSet) {
-            Path from = folderIn.resolve(s);
-            Path to = folderOut.resolve(s);
             try {
-                Files.copy(from, to, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(folderIn.resolve(s), folderOut.resolve(s),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-    public static HashSet<String> getFileNames(Path folder) {
+    private static HashSet<String> getFileNames(Path folder) {
         HashSet<String> nameSet = new HashSet<>();
         Arrays.stream(Objects.requireNonNull(folder.toFile().listFiles()))
                 .forEach(fileIn -> nameSet.add(fileIn.getName()));
