@@ -284,7 +284,7 @@ public class JourneyMapToXaero {
                         break;
                     }
                     for (int p = 0; p < 8; ++p) {
-                        out.write(o << 4 | p);
+                        out.write(o << 4 | p);  // tile chunk coord
                         for (int i = 0; i < 4; ++i) {
                             for (int j = 0; j < 4; ++j) {
                                 int voidCount = 0;

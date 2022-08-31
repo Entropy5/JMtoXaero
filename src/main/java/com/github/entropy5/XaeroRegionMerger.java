@@ -68,8 +68,10 @@ public class XaeroRegionMerger {
 
 
                     int firstByte = in.read();
+                    System.out.println("firstbyte: " + firstByte);
                     if (firstByte == 255) {
                         saveVersion = in.readInt();
+                        System.out.println("version: " + saveVersion);
                         if (4 < saveVersion) {
                             zipIn1.closeEntry();
                             in.close();
@@ -82,7 +84,8 @@ public class XaeroRegionMerger {
                     while (true) {  // Keeps reading TileChunks (max 8x8) until done
                         int chunkCoords = firstByte == -1 ? in.read() : firstByte;
                         System.out.println("ChunkCoords: " + chunkCoords);
-                        if (chunkCoords == -1) {
+                        if (chunkCoords == -1) {  // -1 as chunk coord means its over
+                            System.out.println("closing");
                             zipIn1.closeEntry();
                             break;
                         }
@@ -95,12 +98,16 @@ public class XaeroRegionMerger {
                         for (int i = 0; i < 4; ++i) {
                             for (int j = 0; j < 4; ++j) {
                                 Integer nextTile = in.readInt();
+                                System.out.println("parameters: " + nextTile);
                                 if (nextTile != -1) {  // Skip empty chunk
                                     for (int x = 0; x < 16; ++x) {
                                         for (int z = 0; z < 16; ++z) {
                                             passPixel(nextTile, in, out, saveVersion, true);
                                             nextTile = null;
                                         }
+                                    }
+                                    if (saveVersion == 4) {
+                                        int worldInterVersion = in.read();
                                     }
                                 } else {
                                     System.out.println("Empty chunk " + o + "," + p + "," + i + "," + j);
@@ -127,6 +134,7 @@ public class XaeroRegionMerger {
             parametres = next;
         } else {
             parametres = in.readInt();
+            System.out.println("special parameters: " + parametres);
             if (write) {
                 out.writeInt(parametres);
             }
@@ -134,7 +142,7 @@ public class XaeroRegionMerger {
 
         if ((parametres & 1) != 0) {
             int state = in.readInt();
-//            System.out.println("counter: " + counter + " - state: " + state);
+            System.out.println("counter: " + counter + " - state: " + state);
             counter++;
             if (write) {
                 out.writeInt(state);
@@ -143,6 +151,7 @@ public class XaeroRegionMerger {
 
         if ((parametres & 64) != 0) {
             int height = in.read();
+            System.out.println("height: " + height);
             if (write) {
                 out.write(height);
             }
@@ -151,6 +160,7 @@ public class XaeroRegionMerger {
         int biomeKey;
         if ((parametres & 2) != 0) {
             savedColourType = in.read();
+            System.out.println("savedcolortype: " + savedColourType);
             if (write) {
                 out.write(savedColourType);
             }
@@ -162,6 +172,7 @@ public class XaeroRegionMerger {
         savedColourType = parametres >> 2 & 3;
         if (savedColourType == 3) {
             int customColour = in.readInt();
+            System.out.println("customc: " + customColour);
             if (write) {
                 out.writeInt(customColour);
             }
