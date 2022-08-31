@@ -156,6 +156,11 @@ public class XaeroRegionMerger {
                 out.write(height);
             }
         }
+
+        if ((parametres & 16777216) != 0) {
+            int topHeight = in.read();
+        }
+
         int savedColourType;
         int biomeKey;
         if ((parametres & 2) != 0) {
