@@ -41,9 +41,7 @@ public class XaeroRegionMerger {
     }
 
     private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames) {
-        rNames.forEach(rName -> {
-            mergeRegion(inp1, inp2, outp, rName);
-        });
+        rNames.forEach(rName -> mergeRegion(inp1, inp2, outp, rName));
     }
 
     private static void mergeRegion(Path inp1, Path inp2, Path outp, String rName) {
@@ -54,8 +52,8 @@ public class XaeroRegionMerger {
         DataInputStream in1 = null;
         DataInputStream in2 = null;
         DataOutputStream out = null;
-        int saveVersionA = -1;
-        int saveVersionB = -1;
+        int saveVersionA;
+        int saveVersionB;
         try {
             try {
                 ZipInputStream zipIn1 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn1.toPath()), 2048));
@@ -267,7 +265,6 @@ public class XaeroRegionMerger {
             out.writeInt(65536 * 100 + 256 * 100 + 100);
         }
 
-        biomeKey = -1;
         if (savedColourType != 0 && savedColourType != 3 || (parametres & 1048576) != 0) {
             int biomeByte = in.read();
             if (write) {
@@ -295,7 +292,7 @@ public class XaeroRegionMerger {
                 out.writeInt(state);
             }
         }
-        int opacity = 1;
+        int opacity;
         byte savedColourType = (byte) (parametres >> 8 & 3);
         if (savedColourType == 2 || (parametres & 4) != 0) {
             int biomeBuffer = in.readInt();
