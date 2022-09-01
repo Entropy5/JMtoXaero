@@ -76,7 +76,7 @@ public class XaeroRegionMerger {
                         if (saveVersionA == 4 && saveVersionB == 4) {
                             out.writeInt(4);
                         } else {
-                            throw new RuntimeException(rName + " made using newer xaero version");
+                            throw new RuntimeException(rName + " version problem");
                         }
                         firstByteA = -1;
                         firstByteB = -1;
@@ -88,50 +88,69 @@ public class XaeroRegionMerger {
                         if (tileProc == Process.A || tileProc == Process.BOTH) {
                             if (firstByteA == -1) {
                                 tileChunkCoordsA = in1.read();
-                                out.write(tileChunkCoordsA);
                             } else {
+                                System.out.println("does this even trigger");
                                 tileChunkCoordsA = firstByteA;
                             }
                         }
                         if (tileProc == Process.B || tileProc == Process.BOTH) {
                             if (firstByteB == -1) {
                                 tileChunkCoordsB = in2.read();
-                                if (tileProc == Process.B) {  // only case where it wasn't written already
-                                    out.write(tileChunkCoordsB);
-                                }
                             } else {
+                                System.out.println("does this even trigger");
                                 tileChunkCoordsB = firstByteB;
                             }
                         }
+                        if (tileChunkCoordsA == -1 && tileChunkCoordsB == -1) {
+                            tileProc = Process.NONE;
+//                            out.write(-1);
+                        } else if (tileChunkCoordsA == tileChunkCoordsB) {
+                            tileProc = Process.BOTH;
+                            out.write(tileChunkCoordsA);
+                        } else if (tileChunkCoordsB == -1) {
+                            tileProc = Process.A;
+                            out.write(tileChunkCoordsA);
+                        } else if (tileChunkCoordsA == -1){
+                            tileProc = Process.B;
+                            out.write(tileChunkCoordsB);
+                        } else if (tileChunkCoordsA < tileChunkCoordsB) {
+                            tileProc = Process.A;
+                            out.write(tileChunkCoordsA);
+                        } else {
+                            tileProc = Process.B;
+                            out.write(tileChunkCoordsB);
+                        }
+
+                        System.out.println("Getting chunk coords for " + tileProc);
                         System.out.println("ChunkCoords: " + tileChunkCoordsA + ", " + tileChunkCoordsB);
-                        if (tileChunkCoordsA == -1 && tileChunkCoordsB == -1) {  // -1 as chunk coord means its over
+                        if (tileProc == Process.NONE) {  // -1 as chunk coord means its over
                             System.out.println("closing");
                             zipIn1.closeEntry();
                             zipIn2.closeEntry();
                             zipOut.closeEntry();
                             break;
                         }
-                        tileProc = tileChunkCoordsA < tileChunkCoordsB ? Process.A : (tileChunkCoordsA == tileChunkCoordsB ? Process.BOTH : Process.B);
-                        System.out.println(tileProc);
-                        firstByteA = -1;
-                        firstByteB = -1;
-                        System.out.println("Chunk: " + (tileChunkCoordsA >> 4) + "," + (tileChunkCoordsA & 15));
-                        System.out.println("Chunk: " + (tileChunkCoordsB >> 4) + "," + (tileChunkCoordsB & 15));
+
+                        if (tileProc == Process.A || tileProc == Process.BOTH) {
+                            firstByteA = -1;
+                            System.out.println("Chunk A: " + (tileChunkCoordsA >> 4) + "," + (tileChunkCoordsA & 15));
+                        }
+                        if (tileProc == Process.B || tileProc == Process.BOTH) {
+                            firstByteB = -1;
+                            System.out.println("Chunk B: " + (tileChunkCoordsB >> 4) + "," + (tileChunkCoordsB & 15));
+                        }
 
                         for (int i = 0; i < 4; ++i) {
                             for (int j = 0; j < 4; ++j) {
                                 if (tileProc == Process.A) {
                                     Integer nextTile = in1.readInt();
-                                    out.writeInt(nextTile);
-                                    passChunk(nextTile, in1, out, true);
+                                    passChunk(nextTile, in1, out, true);  // passChunk handles writing the int
                                 } else if (tileProc == Process.B) {
                                     Integer nextTile = in2.readInt();
-                                    out.writeInt(nextTile);
                                     passChunk(nextTile, in2, out, true);
                                 } else {
                                     Integer nextTileA = in1.readInt();
                                     Integer nextTileB = in2.readInt();
-                                    out.writeInt(nextTileA);
                                     passChunk(nextTileA, nextTileB, in1, in2, out);  // Deep merge
                                 }
                             }
@@ -155,6 +174,10 @@ public class XaeroRegionMerger {
     }
 
     private static void passChunk(Integer nextTile, DataInputStream in, DataOutputStream out, boolean write) throws IOException {
+        System.out.println("Passing chunk");
+        if (write) {
+            out.writeInt(nextTile);
+        }
         if (nextTile != -1) {  // Skip empty chunk
             for (int x = 0; x < 16; ++x) {
                 for (int z = 0; z < 16; ++z) {
@@ -177,6 +200,8 @@ public class XaeroRegionMerger {
             }
         } else if (nextTileB != -1) {
             passChunk(nextTileB, in2, out, true);
+        } else {
+            out.writeInt(-1);  // if both are empty, write -1
         }
     }
 
@@ -187,24 +212,25 @@ public class XaeroRegionMerger {
             parametres = next;
         } else {
             parametres = in.readInt();
-//            System.out.println("special parameters: " + parametres);
             if (write) {
                 out.writeInt(parametres);
             }
         }
 
-        if ((parametres & 1) != 0) {
+        if ((parametres & 1) != 0) {  // likely a grass check
             int state = in.readInt();
-            System.out.println("counter: " + counter + " - state: " + state + " - write: " + write);
-            counter++;
+            System.out.println("counter: " + counter + " - write: " + write + " - params: " + parametres + " - state: " + state);
             if (write) {
                 out.writeInt(state);
             }
+        } else {
+            System.out.println("grass");
         }
+        counter++;
 
         if ((parametres & 64) != 0) {
             int height = in.read();
-//            System.out.println("height: " + height);
+            System.out.println("height: " + height);
             if (write) {
                 out.write(height);
             }
@@ -221,7 +247,7 @@ public class XaeroRegionMerger {
         int biomeKey;
         if ((parametres & 2) != 0) {
             savedColourType = in.read();
-//            System.out.println("savedcolortype: " + savedColourType);
+            System.out.println("savedcolortype: " + savedColourType);
             if (write) {
                 out.write(savedColourType);
             }
@@ -233,7 +259,7 @@ public class XaeroRegionMerger {
         savedColourType = parametres >> 2 & 3;
         if (savedColourType == 3) {
             int customColour = in.readInt();
-//            System.out.println("customc: " + customColour);
+            System.out.println("customc: " + customColour);
             if (write) {
                 out.writeInt(customColour);
             }
@@ -305,6 +331,7 @@ public class XaeroRegionMerger {
     enum Process {
         A,
         B,
-        BOTH
+        BOTH,
+        NONE
     }
 }
