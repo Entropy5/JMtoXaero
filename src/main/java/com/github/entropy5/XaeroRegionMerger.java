@@ -12,6 +12,7 @@ import java.util.zip.ZipOutputStream;
 
 public class XaeroRegionMerger {
 
+    public static boolean dark = true;  // stain the background darker
     public static final HashSet<Integer> GREENS = new HashSet<>(Arrays.asList(2, 161, 49170, 24594, 32929, 8210, 18, 57362, 53409, 4257, 16402, 20641, 49313, 32786, 37025, 16545, 40978));
 
     public static void main(String[] args) {
@@ -31,21 +32,29 @@ public class XaeroRegionMerger {
         HashSet<String> onlySecond = new HashSet<>(secondSet);
         onlySecond.removeAll(firstSet);  // Difference
         System.out.println("Only present in second: " + onlySecond);
-        copyFull(secondFolderIn, folderOut, onlySecond);
+        if (dark) {
+            deepMerge(secondFolderIn, secondFolderIn, folderOut, onlySecond, false);
+        } else {
+            copyFull(secondFolderIn, folderOut, onlySecond);
+        }
 
         HashSet<String> inter = new HashSet<>(firstSet);
         inter.retainAll(secondSet);  // Intersection
         System.out.println("Need to deep merge: " + inter);
-        deepMerge(firstFolderIn, secondFolderIn, folderOut, inter);
+        deepMerge(firstFolderIn, secondFolderIn, folderOut, inter, true);
 
     }
 
-    private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames) {
-        rNames.parallelStream().forEach(rName -> mergeRegion(inp1, inp2, outp, rName));
+    private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames, boolean first) {
+        rNames.parallelStream().forEach(rName -> mergeRegion(inp1, inp2, outp, rName, first));
     }
 
-    private static void mergeRegion(Path inp1, Path inp2, Path outp, String rName) {
-        System.out.println("Merging " + rName);
+    private static void mergeRegion(Path inp1, Path inp2, Path outp, String rName, boolean first) {
+        if (first) {
+            System.out.println("Merging " + rName);
+        } else {
+            System.out.println("Darkening " + rName);
+        }
         File fileIn1 = inp1.resolve(rName).toFile();
         File fileIn2 = inp2.resolve(rName).toFile();
         File fileOut = outp.resolve(rName).toFile();
@@ -54,13 +63,17 @@ public class XaeroRegionMerger {
         DataOutputStream out = null;
         int saveVersionA;
         int saveVersionB;
+        ZipInputStream zipIn1 = null;
+        ZipInputStream zipIn2;
         try {
             try {
-                ZipInputStream zipIn1 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn1.toPath()), 2048));
-                ZipInputStream zipIn2 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn2.toPath()), 2048));
-                in1 = new DataInputStream(zipIn1);
+                if (first) {
+                    zipIn1 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn1.toPath()), 2048));
+                    in1 = new DataInputStream(zipIn1);
+                    zipIn1.getNextEntry();
+                }
+                zipIn2 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn2.toPath()), 2048));
                 in2 = new DataInputStream(zipIn2);
-                zipIn1.getNextEntry();
                 zipIn2.getNextEntry();
 
                 final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(fileOut.toPath())));
@@ -68,11 +81,11 @@ public class XaeroRegionMerger {
                 final ZipEntry e = new ZipEntry("region.xaero");
                 zipOut.putNextEntry(e);
 
-                int firstByteA = in1.read();
+                int firstByteA = first ? in1.read() : 255;
                 int firstByteB = in2.read();
                 if (firstByteA == 255) {
                     out.write(255);
-                    saveVersionA = in1.readInt();
+                    saveVersionA = first ? in1.readInt() : 4;
                     saveVersionB = in2.readInt();
                     if (saveVersionA == 4 && saveVersionB == 4) {
                         out.writeInt(4);
@@ -88,7 +101,7 @@ public class XaeroRegionMerger {
                 while (true) {  // Keeps reading TileChunks (max 8x8) until done
                     if (tileProc == Process.A || tileProc == Process.BOTH) {
                         if (firstByteA == -1) {
-                            tileChunkCoordsA = in1.read();
+                            tileChunkCoordsA = first ? in1.read() : -1;  // if first is false then this will make it skip
                         } else {
                             tileChunkCoordsA = firstByteA;
                         }
@@ -120,7 +133,9 @@ public class XaeroRegionMerger {
                     }
 
                     if (tileProc == Process.NONE) {  // -1 as chunk coord means its over
-                        zipIn1.closeEntry();
+                        if (first) {
+                            zipIn1.closeEntry();
+                        }
                         zipIn2.closeEntry();
                         zipOut.closeEntry();
                         break;
@@ -166,6 +181,7 @@ public class XaeroRegionMerger {
     }
 
     private static void passChunk(Integer nextTile, DataInputStream in, DataOutputStream out, boolean write, boolean darken) throws IOException {
+        darken = dark && darken;
         if (write) {
             if (darken) {
                 out.writeInt(nextTile | 3 << 2);  // darken needs color type 3
