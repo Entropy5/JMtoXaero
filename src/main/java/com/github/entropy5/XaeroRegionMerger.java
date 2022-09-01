@@ -41,133 +41,129 @@ public class XaeroRegionMerger {
     }
 
     private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames) {
-        for (String rName : rNames) {
-            System.out.println("Merging " + rName);
-            File fileIn1 = inp1.resolve(rName).toFile();
-            File fileIn2 = inp2.resolve(rName).toFile();
-            File fileOut = outp.resolve(rName).toFile();
-            DataInputStream in1 = null;
-            DataInputStream in2 = null;
-            DataOutputStream out = null;
-            int saveVersionA = -1;
-            int saveVersionB = -1;
+        rNames.forEach(rName -> {
+            mergeRegion(inp1, inp2, outp, rName);
+        });
+    }
+
+    private static void mergeRegion(Path inp1, Path inp2, Path outp, String rName) {
+        System.out.println("Merging " + rName);
+        File fileIn1 = inp1.resolve(rName).toFile();
+        File fileIn2 = inp2.resolve(rName).toFile();
+        File fileOut = outp.resolve(rName).toFile();
+        DataInputStream in1 = null;
+        DataInputStream in2 = null;
+        DataOutputStream out = null;
+        int saveVersionA = -1;
+        int saveVersionB = -1;
+        try {
             try {
-                try {
-                    ZipInputStream zipIn1 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn1.toPath()), 2048));
-                    ZipInputStream zipIn2 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn2.toPath()), 2048));
-                    in1 = new DataInputStream(zipIn1);
-                    in2 = new DataInputStream(zipIn2);
-                    zipIn1.getNextEntry();
-                    zipIn2.getNextEntry();
+                ZipInputStream zipIn1 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn1.toPath()), 2048));
+                ZipInputStream zipIn2 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn2.toPath()), 2048));
+                in1 = new DataInputStream(zipIn1);
+                in2 = new DataInputStream(zipIn2);
+                zipIn1.getNextEntry();
+                zipIn2.getNextEntry();
 
-                    final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(fileOut.toPath())));
-                    out = new DataOutputStream(zipOut);
-                    final ZipEntry e = new ZipEntry("region.xaero");
-                    zipOut.putNextEntry(e);
+                final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(fileOut.toPath())));
+                out = new DataOutputStream(zipOut);
+                final ZipEntry e = new ZipEntry("region.xaero");
+                zipOut.putNextEntry(e);
 
-                    int firstByteA = in1.read();
-                    int firstByteB = in2.read();
-                    System.out.println("firstbyte: " + firstByteA + ", " + firstByteB);
-                    if (firstByteA == 255) {
-                        out.write(255);
-                        saveVersionA = in1.readInt();
-                        saveVersionB = in2.readInt();
-                        System.out.println("version: " + saveVersionA + ", " + saveVersionB);
-                        if (saveVersionA == 4 && saveVersionB == 4) {
-                            out.writeInt(4);
+                int firstByteA = in1.read();
+                int firstByteB = in2.read();
+                if (firstByteA == 255) {
+                    out.write(255);
+                    saveVersionA = in1.readInt();
+                    saveVersionB = in2.readInt();
+                    if (saveVersionA == 4 && saveVersionB == 4) {
+                        out.writeInt(4);
+                    } else {
+                        throw new RuntimeException(rName + " version problem");
+                    }
+                    firstByteA = -1;
+                    firstByteB = -1;
+                }
+                Process tileProc = Process.BOTH;
+                int tileChunkCoordsA = 0;
+                int tileChunkCoordsB = 0;
+                while (true) {  // Keeps reading TileChunks (max 8x8) until done
+                    if (tileProc == Process.A || tileProc == Process.BOTH) {
+                        if (firstByteA == -1) {
+                            tileChunkCoordsA = in1.read();
                         } else {
-                            throw new RuntimeException(rName + " version problem");
+                            tileChunkCoordsA = firstByteA;
                         }
+                    }
+                    if (tileProc == Process.B || tileProc == Process.BOTH) {
+                        if (firstByteB == -1) {
+                            tileChunkCoordsB = in2.read();
+                        } else {
+                            tileChunkCoordsB = firstByteB;
+                        }
+                    }
+                    if (tileChunkCoordsA == -1 && tileChunkCoordsB == -1) {
+                        tileProc = Process.NONE;
+                    } else if (tileChunkCoordsA == tileChunkCoordsB) {
+                        tileProc = Process.BOTH;
+                        out.write(tileChunkCoordsA);
+                    } else if (tileChunkCoordsB == -1) {
+                        tileProc = Process.A;
+                        out.write(tileChunkCoordsA);
+                    } else if (tileChunkCoordsA == -1) {
+                        tileProc = Process.B;
+                        out.write(tileChunkCoordsB);
+                    } else if (tileChunkCoordsA < tileChunkCoordsB) {
+                        tileProc = Process.A;
+                        out.write(tileChunkCoordsA);
+                    } else {
+                        tileProc = Process.B;
+                        out.write(tileChunkCoordsB);
+                    }
+
+                    if (tileProc == Process.NONE) {  // -1 as chunk coord means its over
+                        zipIn1.closeEntry();
+                        zipIn2.closeEntry();
+                        zipOut.closeEntry();
+                        break;
+                    }
+
+                    if (tileProc == Process.A || tileProc == Process.BOTH) {
                         firstByteA = -1;
+                    }
+                    if (tileProc == Process.B || tileProc == Process.BOTH) {
                         firstByteB = -1;
                     }
-                    Process tileProc = Process.BOTH;
-                    int tileChunkCoordsA = 0;
-                    int tileChunkCoordsB = 0;
-                    while (true) {  // Keeps reading TileChunks (max 8x8) until done
-                        if (tileProc == Process.A || tileProc == Process.BOTH) {
-                            if (firstByteA == -1) {
-                                tileChunkCoordsA = in1.read();
+
+                    for (int i = 0; i < 4; ++i) {
+                        for (int j = 0; j < 4; ++j) {
+                            if (tileProc == Process.A) {
+                                Integer nextTile = in1.readInt();
+                                passChunk(nextTile, in1, out, true, false);  // passChunk handles writing the int
+                            } else if (tileProc == Process.B) {
+                                Integer nextTile = in2.readInt();
+                                passChunk(nextTile, in2, out, true, true);
                             } else {
-                                tileChunkCoordsA = firstByteA;
+                                Integer nextTileA = in1.readInt();
+                                Integer nextTileB = in2.readInt();
+                                passChunk(nextTileA, nextTileB, in1, in2, out);  // Deep merge
                             }
                         }
-                        if (tileProc == Process.B || tileProc == Process.BOTH) {
-                            if (firstByteB == -1) {
-                                tileChunkCoordsB = in2.read();
-                            } else {
-                                tileChunkCoordsB = firstByteB;
-                            }
-                        }
-                        if (tileChunkCoordsA == -1 && tileChunkCoordsB == -1) {
-                            tileProc = Process.NONE;
-//                            out.write(-1);
-                        } else if (tileChunkCoordsA == tileChunkCoordsB) {
-                            tileProc = Process.BOTH;
-                            out.write(tileChunkCoordsA);
-                        } else if (tileChunkCoordsB == -1) {
-                            tileProc = Process.A;
-                            out.write(tileChunkCoordsA);
-                        } else if (tileChunkCoordsA == -1){
-                            tileProc = Process.B;
-                            out.write(tileChunkCoordsB);
-                        } else if (tileChunkCoordsA < tileChunkCoordsB) {
-                            tileProc = Process.A;
-                            out.write(tileChunkCoordsA);
-                        } else {
-                            tileProc = Process.B;
-                            out.write(tileChunkCoordsB);
-                        }
-
-                        System.out.println("Getting chunk coords for " + tileProc);
-                        System.out.println("ChunkCoords: " + tileChunkCoordsA + ", " + tileChunkCoordsB);
-                        if (tileProc == Process.NONE) {  // -1 as chunk coord means its over
-                            System.out.println("closing");
-                            zipIn1.closeEntry();
-                            zipIn2.closeEntry();
-                            zipOut.closeEntry();
-                            break;
-                        }
-
-                        if (tileProc == Process.A || tileProc == Process.BOTH) {
-                            firstByteA = -1;
-                            System.out.println("Chunk A: " + (tileChunkCoordsA >> 4) + "," + (tileChunkCoordsA & 15));
-                        }
-                        if (tileProc == Process.B || tileProc == Process.BOTH) {
-                            firstByteB = -1;
-                            System.out.println("Chunk B: " + (tileChunkCoordsB >> 4) + "," + (tileChunkCoordsB & 15));
-                        }
-
-                        for (int i = 0; i < 4; ++i) {
-                            for (int j = 0; j < 4; ++j) {
-                                if (tileProc == Process.A) {
-                                    Integer nextTile = in1.readInt();
-                                    passChunk(nextTile, in1, out, true, false);  // passChunk handles writing the int
-                                } else if (tileProc == Process.B) {
-                                    Integer nextTile = in2.readInt();
-                                    passChunk(nextTile, in2, out, true, true);
-                                } else {
-                                    Integer nextTileA = in1.readInt();
-                                    Integer nextTileB = in2.readInt();
-                                    passChunk(nextTileA, nextTileB, in1, in2, out);  // Deep merge
-                                }
-                            }
-                        }
-                    }
-                } finally {
-                    if (in1 != null) {
-                        in1.close();
-                    }
-                    if (in2 != null) {
-                        in2.close();
-                    }
-                    if (out != null) {
-                        out.close();
                     }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } finally {
+                if (in1 != null) {
+                    in1.close();
+                }
+                if (in2 != null) {
+                    in2.close();
+                }
+                if (out != null) {
+                    out.close();
+                }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -252,7 +248,7 @@ public class XaeroRegionMerger {
                 out.write(savedColourType);
             }
 
-            for(biomeKey = 0; biomeKey < savedColourType; ++biomeKey) {
+            for (biomeKey = 0; biomeKey < savedColourType; ++biomeKey) {
                 passOverlay(in, out, write);
             }
         }
@@ -261,7 +257,7 @@ public class XaeroRegionMerger {
             int customColour = in.readInt();
             if (write) {
                 if (darken) {
-                    out.writeInt(65536 * 250 + 256 * 250 + 250);
+                    out.writeInt(65536 * 100 + 256 * 100 + 100);
                 } else {
                     out.writeInt(customColour);
                 }
@@ -300,7 +296,7 @@ public class XaeroRegionMerger {
             }
         }
         int opacity = 1;
-        byte savedColourType = (byte)(parametres >> 8 & 3);
+        byte savedColourType = (byte) (parametres >> 8 & 3);
         if (savedColourType == 2 || (parametres & 4) != 0) {
             int biomeBuffer = in.readInt();
             if (write) {
@@ -317,6 +313,7 @@ public class XaeroRegionMerger {
 
 
     private static void copyFull(Path folderIn, Path folderOut, HashSet<String> regionSet) {
+        System.out.println("Copying " + regionSet.size() + " regions");
         for (String s : regionSet) {
             try {
                 Files.copy(folderIn.resolve(s), folderOut.resolve(s),
