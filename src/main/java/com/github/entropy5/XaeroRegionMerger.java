@@ -302,7 +302,7 @@ public class XaeroRegionMerger {
 
     private static void writeColor(DataOutputStream out, boolean green) throws IOException {
         if (green) {
-            out.writeInt(65536 * 75 + 256 * 110 + 50);  // green
+            out.writeInt(65536 * 87 + 256 * 121 + 58);  // green
         } else {
             out.writeInt(65536 * 150 + 256 * 150 + 150);  // gray
         }
