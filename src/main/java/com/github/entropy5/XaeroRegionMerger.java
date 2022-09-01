@@ -12,7 +12,7 @@ import java.util.zip.ZipOutputStream;
 
 public class XaeroRegionMerger {
 
-    static int counter = 0;
+    public static final HashSet<Integer> GREENS = new HashSet<>(Arrays.asList(2, 161, 49170, 24594, 32929, 8210, 18, 57362, 53409, 4257, 16402, 20641, 49313, 32786, 37025, 16545, 40978));
 
     public static void main(String[] args) {
         // First folder gets pixel priority, put the important stuff here
@@ -41,7 +41,7 @@ public class XaeroRegionMerger {
     }
 
     private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames) {
-        rNames.forEach(rName -> mergeRegion(inp1, inp2, outp, rName));
+        rNames.parallelStream().forEach(rName -> mergeRegion(inp1, inp2, outp, rName));
     }
 
     private static void mergeRegion(Path inp1, Path inp2, Path outp, String rName) {
@@ -202,6 +202,7 @@ public class XaeroRegionMerger {
 
 
     private static void passPixel(Integer next, DataInputStream in, DataOutputStream out, boolean write, boolean darken) throws IOException {
+        boolean green = false;
         int parametres;
         if (next != null) {
             parametres = next;
@@ -220,9 +221,13 @@ public class XaeroRegionMerger {
             int state = in.readInt();
             if (write) {
                 out.writeInt(state);
+                if (darken & GREENS.contains(state)) {
+                    green = true;
+                }
             }
+        } else if (darken) {
+            green = true;
         }
-        counter++;
 
         if ((parametres & 64) != 0) {
             int height = in.read();
@@ -255,14 +260,14 @@ public class XaeroRegionMerger {
             int customColour = in.readInt();
             if (write) {
                 if (darken) {
-                    out.writeInt(65536 * 100 + 256 * 100 + 100);
+                    writeColor(out, green);
                 } else {
                     out.writeInt(customColour);
                 }
             }
         }
         if (darken && write) {
-            out.writeInt(65536 * 100 + 256 * 100 + 100);
+            writeColor(out, green);
         }
 
         if (savedColourType != 0 && savedColourType != 3 || (parametres & 1048576) != 0) {
@@ -276,6 +281,14 @@ public class XaeroRegionMerger {
                     out.writeInt(biomeKey);
                 }
             }
+        }
+    }
+
+    private static void writeColor(DataOutputStream out, boolean green) throws IOException {
+        if (green) {
+            out.writeInt(65536 * 100 + 256 * 133 + 66);
+        } else {
+            out.writeInt(65536 * 150 + 256 * 150 + 150);
         }
     }
 
