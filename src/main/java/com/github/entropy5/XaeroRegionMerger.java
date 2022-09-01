@@ -89,7 +89,6 @@ public class XaeroRegionMerger {
                             if (firstByteA == -1) {
                                 tileChunkCoordsA = in1.read();
                             } else {
-                                System.out.println("does this even trigger");
                                 tileChunkCoordsA = firstByteA;
                             }
                         }
@@ -97,7 +96,6 @@ public class XaeroRegionMerger {
                             if (firstByteB == -1) {
                                 tileChunkCoordsB = in2.read();
                             } else {
-                                System.out.println("does this even trigger");
                                 tileChunkCoordsB = firstByteB;
                             }
                         }
@@ -144,10 +142,10 @@ public class XaeroRegionMerger {
                             for (int j = 0; j < 4; ++j) {
                                 if (tileProc == Process.A) {
                                     Integer nextTile = in1.readInt();
-                                    passChunk(nextTile, in1, out, true);  // passChunk handles writing the int
+                                    passChunk(nextTile, in1, out, true, false);  // passChunk handles writing the int
                                 } else if (tileProc == Process.B) {
                                     Integer nextTile = in2.readInt();
-                                    passChunk(nextTile, in2, out, true);
+                                    passChunk(nextTile, in2, out, true, true);
                                 } else {
                                     Integer nextTileA = in1.readInt();
                                     Integer nextTileB = in2.readInt();
@@ -173,15 +171,18 @@ public class XaeroRegionMerger {
         }
     }
 
-    private static void passChunk(Integer nextTile, DataInputStream in, DataOutputStream out, boolean write) throws IOException {
-        System.out.println("Passing chunk");
+    private static void passChunk(Integer nextTile, DataInputStream in, DataOutputStream out, boolean write, boolean darken) throws IOException {
         if (write) {
-            out.writeInt(nextTile);
+            if (darken) {
+                out.writeInt(nextTile | 3 << 2);  // darken needs color type 3
+            } else {
+                out.writeInt(nextTile);
+            }
         }
         if (nextTile != -1) {  // Skip empty chunk
             for (int x = 0; x < 16; ++x) {
                 for (int z = 0; z < 16; ++z) {
-                    passPixel(nextTile, in, out, write);
+                    passPixel(nextTile, in, out, write, darken);
                     nextTile = null;
                 }
             }
@@ -194,43 +195,43 @@ public class XaeroRegionMerger {
 
     private static void passChunk(Integer nextTileA, Integer nextTileB, DataInputStream in1, DataInputStream in2, DataOutputStream out) throws IOException {
         if (nextTileA != -1) {  // A gets priority
-            passChunk(nextTileA, in1, out, true);
+            passChunk(nextTileA, in1, out, true, false);
             if (nextTileB != -1) {
-                passChunk(nextTileB, in2, out, false);
+                passChunk(nextTileB, in2, out, false, false);
             }
         } else if (nextTileB != -1) {
-            passChunk(nextTileB, in2, out, true);
+            passChunk(nextTileB, in2, out, true, true);
         } else {
             out.writeInt(-1);  // if both are empty, write -1
         }
     }
 
 
-    private static void passPixel(Integer next, DataInputStream in, DataOutputStream out, boolean write) throws IOException {
+    private static void passPixel(Integer next, DataInputStream in, DataOutputStream out, boolean write, boolean darken) throws IOException {
         int parametres;
         if (next != null) {
             parametres = next;
         } else {
             parametres = in.readInt();
             if (write) {
-                out.writeInt(parametres);
+                if (darken) {
+                    out.writeInt(parametres | 3 << 2);  // color type 3
+                } else {
+                    out.writeInt(parametres);
+                }
             }
         }
 
         if ((parametres & 1) != 0) {  // likely a grass check
             int state = in.readInt();
-            System.out.println("counter: " + counter + " - write: " + write + " - params: " + parametres + " - state: " + state);
             if (write) {
                 out.writeInt(state);
             }
-        } else {
-            System.out.println("grass");
         }
         counter++;
 
         if ((parametres & 64) != 0) {
             int height = in.read();
-            System.out.println("height: " + height);
             if (write) {
                 out.write(height);
             }
@@ -247,7 +248,6 @@ public class XaeroRegionMerger {
         int biomeKey;
         if ((parametres & 2) != 0) {
             savedColourType = in.read();
-            System.out.println("savedcolortype: " + savedColourType);
             if (write) {
                 out.write(savedColourType);
             }
@@ -259,10 +259,16 @@ public class XaeroRegionMerger {
         savedColourType = parametres >> 2 & 3;
         if (savedColourType == 3) {
             int customColour = in.readInt();
-            System.out.println("customc: " + customColour);
             if (write) {
-                out.writeInt(customColour);
+                if (darken) {
+                    out.writeInt(65536 * 250 + 256 * 250 + 250);
+                } else {
+                    out.writeInt(customColour);
+                }
             }
+        }
+        if (darken && write) {
+            out.writeInt(65536 * 100 + 256 * 100 + 100);
         }
 
         biomeKey = -1;
