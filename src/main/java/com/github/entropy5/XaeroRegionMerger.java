@@ -5,10 +5,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -59,11 +62,15 @@ public class XaeroRegionMerger {
 
     private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames, boolean first, int parallelism) {
         final ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
-        rNames.forEach(rName -> executorService.submit(() -> mergeRegion(inp1, inp2, outp, rName, first)));
+        List<Callable<Object>> tasks = rNames.stream()
+                .map(rName -> Executors.callable(() -> mergeRegion(inp1, inp2, outp, rName, first)))
+                .collect(Collectors.toList());
         try {
-            executorService.awaitTermination(40, TimeUnit.HOURS); // lol
+            executorService.invokeAll(tasks);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        } finally {
+            executorService.shutdown();
         }
     }
 
