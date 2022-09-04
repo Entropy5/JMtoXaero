@@ -3,6 +3,7 @@ package com.github.entropy5;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -25,7 +26,7 @@ public class XaeroRegionMerger {
         if (args.length != 4) {
             throw new RuntimeException("Incorrect number of arguments");
         }
-
+        final Instant before = Instant.now();
         // First folder gets pixel priority, put the important stuff here
         Path firstFolderIn = new File(args[0]).toPath();
         Path secondFolderIn = new File(args[1]).toPath();
@@ -52,12 +53,17 @@ public class XaeroRegionMerger {
         } else {
             copyFull(secondFolderIn, folderOut, onlySecond);
         }
+        Instant afterDarken = Instant.now();
+        long secondsToDarken = afterDarken.getEpochSecond() - before.getEpochSecond();
+        System.out.println("Completed darkening in: " + (secondsToDarken / 60) + " minutes");
 
         HashSet<String> inter = new HashSet<>(firstSet);
         inter.retainAll(secondSet);  // Intersection
         System.out.println("Need to deep merge: " + inter);
         deepMerge(firstFolderIn, secondFolderIn, folderOut, inter, true, parallelism);
-
+        Instant afterChunkMerge = Instant.now();
+        long secondsToDeepMerge = afterChunkMerge.getEpochSecond() - before.getEpochSecond();
+        System.out.println("Completed deep merge in: " + (secondsToDeepMerge / 60) + " minutes");
     }
 
     private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames, boolean first, int parallelism) {
