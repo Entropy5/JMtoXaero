@@ -3,9 +3,16 @@ package com.github.entropy5;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -16,10 +23,19 @@ public class XaeroRegionMerger {
     public static final HashSet<Integer> GREENS = new HashSet<>(Arrays.asList(2, 161, 49170, 24594, 32929, 8210, 18, 57362, 53409, 4257, 16402, 20641, 49313, 32786, 37025, 16545, 40978));
 
     public static void main(String[] args) {
+        if (args.length != 4) {
+            throw new RuntimeException("Incorrect number of arguments");
+        }
+        final Instant before = Instant.now();
         // First folder gets pixel priority, put the important stuff here
-        Path firstFolderIn = new File("C:\\Users\\mcmic\\Downloads\\in1").toPath();
-        Path secondFolderIn = new File("C:\\Users\\mcmic\\Downloads\\in2").toPath();
-        Path folderOut = new File("C:\\Users\\mcmic\\Downloads\\out").toPath();
+        Path firstFolderIn = new File(args[0]).toPath();
+        Path secondFolderIn = new File(args[1]).toPath();
+        Path folderOut = new File(args[2]).toPath();
+        int parallelism = Integer.parseInt(args[3]);
+
+        System.out.println("First folder: " + firstFolderIn);
+        System.out.println("Second folder: " + secondFolderIn);
+        System.out.println("Folder out: " + folderOut);
 
         HashSet<String> firstSet = getFileNames(firstFolderIn);
         HashSet<String> secondSet = getFileNames(secondFolderIn);
@@ -33,24 +49,39 @@ public class XaeroRegionMerger {
         onlySecond.removeAll(firstSet);  // Difference
         System.out.println("Only present in second: " + onlySecond);
         if (dark) {
-            deepMerge(secondFolderIn, secondFolderIn, folderOut, onlySecond, false);
+            deepMerge(secondFolderIn, secondFolderIn, folderOut, onlySecond, false, parallelism);
         } else {
             copyFull(secondFolderIn, folderOut, onlySecond);
         }
+        Instant afterDarken = Instant.now();
+        long secondsToDarken = afterDarken.getEpochSecond() - before.getEpochSecond();
+        System.out.println("Completed darkening in: " + (secondsToDarken / 60) + " minutes");
 
         HashSet<String> inter = new HashSet<>(firstSet);
         inter.retainAll(secondSet);  // Intersection
         System.out.println("Need to deep merge: " + inter);
-        deepMerge(firstFolderIn, secondFolderIn, folderOut, inter, true);
-
+        deepMerge(firstFolderIn, secondFolderIn, folderOut, inter, true, parallelism);
+        Instant afterChunkMerge = Instant.now();
+        long secondsToDeepMerge = afterChunkMerge.getEpochSecond() - before.getEpochSecond();
+        System.out.println("Completed deep merge in: " + (secondsToDeepMerge / 60) + " minutes");
     }
 
-    private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames, boolean first) {
-        rNames.parallelStream().forEach(rName -> mergeRegion(inp1, inp2, outp, rName, first));
+    private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames, boolean first, int parallelism) {
+        final ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
+        List<Callable<Object>> tasks = rNames.stream()
+                .map(rName -> Executors.callable(() -> mergeRegion(inp1, inp2, outp, rName, first)))
+                .collect(Collectors.toList());
+        try {
+            executorService.invokeAll(tasks);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            executorService.shutdown();
+        }
     }
 
     private static void mergeRegion(Path inp1, Path inp2, Path outp, String rName, boolean first) {
-        if (first) {
+        if (first) { // todo: refactor this scuffed var
             System.out.println("Merging " + rName);
         } else {
             System.out.println("Darkening " + rName);
@@ -63,21 +94,18 @@ public class XaeroRegionMerger {
         DataOutputStream out = null;
         int saveVersionA;
         int saveVersionB;
-        ZipInputStream zipIn1 = null;
-        ZipInputStream zipIn2;
+
+        // todo: migrate to try with resources sanely
         try {
             try {
                 if (first) {
-                    zipIn1 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn1.toPath()), 2048));
-                    in1 = new DataInputStream(zipIn1);
-                    zipIn1.getNextEntry();
+                    in1 = new DataInputStream(new ByteArrayInputStream(decompressZipToBytes(fileIn1.toPath())));
                 }
-                zipIn2 = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fileIn2.toPath()), 2048));
-                in2 = new DataInputStream(zipIn2);
-                zipIn2.getNextEntry();
+                in2 = new DataInputStream(new ByteArrayInputStream(decompressZipToBytes(fileIn2.toPath())));
 
                 final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(fileOut.toPath())));
-                out = new DataOutputStream(zipOut);
+                final ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+                out = new DataOutputStream(byteOut);
                 final ZipEntry e = new ZipEntry("region.xaero");
                 zipOut.putNextEntry(e);
 
@@ -133,11 +161,9 @@ public class XaeroRegionMerger {
                     }
 
                     if (tileProc == Process.NONE) {  // -1 as chunk coord means its over
-                        if (first) {
-                            zipIn1.closeEntry();
-                        }
-                        zipIn2.closeEntry();
+                        zipOut.write(byteOut.toByteArray());
                         zipOut.closeEntry();
+                        zipOut.close();
                         break;
                     }
 
@@ -203,6 +229,28 @@ public class XaeroRegionMerger {
         }
     }
 
+    private static byte[] decompressZipToBytes(final Path input) {
+        try {
+            return toUnzippedByteArray(Files.readAllBytes(input));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] toUnzippedByteArray(byte[] zippedBytes) throws IOException {
+        final ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(zippedBytes));
+        final byte[] buff = new byte[1024];
+        if (zipInputStream.getNextEntry() != null) {
+            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            int l;
+            while ((l = zipInputStream.read(buff)) > 0) {
+                outputStream.write(buff, 0, l);
+            }
+            return outputStream.toByteArray();
+        }
+        return new byte[0];
+    }
+
     private static void passChunk(Integer nextTileA, Integer nextTileB, DataInputStream in1, DataInputStream in2, DataOutputStream out) throws IOException {
         if (nextTileA != -1) {  // A gets priority
             passChunk(nextTileA, in1, out, true, false);
@@ -215,7 +263,6 @@ public class XaeroRegionMerger {
             out.writeInt(-1);  // if both are empty, write -1
         }
     }
-
 
     private static void passPixel(Integer next, DataInputStream in, DataOutputStream out, boolean write, boolean darken) throws IOException {
         boolean green = false;
@@ -302,12 +349,11 @@ public class XaeroRegionMerger {
 
     private static void writeColor(DataOutputStream out, boolean green) throws IOException {
         if (green) {
-            out.writeInt(65536 * 87 + 256 * 121 + 58);  // green
+            out.writeInt(5732666);  // green
         } else {
-            out.writeInt(65536 * 150 + 256 * 150 + 150);  // gray
+            out.writeInt(9868950);  // gray
         }
     }
-
 
     private static void passOverlay(DataInputStream in, DataOutputStream out, boolean write) throws IOException {
         int parametres = in.readInt();

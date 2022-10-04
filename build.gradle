@@ -32,6 +32,6 @@ jar {
     manifest {
         attributes "Implementation-Title": "entropy5",
                 "Implementation-Version": "2.1",
-                "Main-Class": "com.github.entropy5.JourneyMapToXaero"
+                "Main-Class": "com.github.entropy5.XaeroRegionMerger"
     }
 }
