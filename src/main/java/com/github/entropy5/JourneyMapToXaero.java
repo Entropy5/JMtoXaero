@@ -272,7 +272,8 @@ public class JourneyMapToXaero {
 
             try {
                 final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zipFile.toPath())));
-                out = new DataOutputStream(zipOut);
+                final ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+                out = new DataOutputStream(byteOut);
                 final ZipEntry e = new ZipEntry("region.xaero");
                 zipOut.putNextEntry(e);
                 out.write(255);  // mimicking logic from Xaero format
@@ -281,7 +282,9 @@ public class JourneyMapToXaero {
 
                 while (true) {
                     if (o >= 8) {  // A Region consists of 8 x 8 TileChunks, each size 64
+                        zipOut.write(byteOut.toByteArray());
                         zipOut.closeEntry();
+                        zipOut.close();
                         break;
                     }
                     for (int p = 0; p < 8; ++p) {
