@@ -19,11 +19,14 @@ import java.util.zip.ZipOutputStream;
 
 public class XaeroRegionMerger {
 
-    public static boolean dark = true;  // stain the background darker
     public static final HashSet<Integer> GREENS = new HashSet<>(Arrays.asList(2, 161, 49170, 24594, 32929, 8210, 18, 57362, 53409, 4257, 16402, 20641, 49313, 32786, 37025, 16545, 40978));
-
+//    static boolean dark = false;
     public static void main(String[] args) {
-        if (args.length != 4) {
+        if (args.length != 5) {
+            System.out.println("Usage: java -jar XaeroRegionMerger.jar <top folder> <bottom folder> <out folder> <cores (int)> <darken (0/1)>");
+            System.out.println("- This command will merge the zip files from two xaero folders and save them in a third folder");
+            System.out.println("- The top folder input gets priority over the bottom folder");
+            System.out.println("- Darkening makes the bottom folder less bright, so you can mark background map data as *undiscovered*");
             throw new RuntimeException("Incorrect number of arguments");
         }
         final Instant before = Instant.now();
@@ -32,10 +35,13 @@ public class XaeroRegionMerger {
         Path secondFolderIn = new File(args[1]).toPath();
         Path folderOut = new File(args[2]).toPath();
         int parallelism = Integer.parseInt(args[3]);
+        boolean dark = (Integer.parseInt(args[4]) == 1);  // stain the background darker
 
         System.out.println("First folder: " + firstFolderIn);
         System.out.println("Second folder: " + secondFolderIn);
         System.out.println("Folder out: " + folderOut);
+        System.out.println("Threads: " + parallelism);
+        System.out.println("Darkening: " + dark);
 
         HashSet<String> firstSet = getFileNames(firstFolderIn);
         HashSet<String> secondSet = getFileNames(secondFolderIn);
@@ -49,7 +55,7 @@ public class XaeroRegionMerger {
         onlySecond.removeAll(firstSet);  // Difference
         System.out.println("Only present in second: " + onlySecond);
         if (dark) {
-            deepMerge(secondFolderIn, secondFolderIn, folderOut, onlySecond, false, parallelism);
+            deepMerge(secondFolderIn, secondFolderIn, folderOut, onlySecond, false, parallelism, true);
         } else {
             copyFull(secondFolderIn, folderOut, onlySecond);
         }
@@ -60,16 +66,16 @@ public class XaeroRegionMerger {
         HashSet<String> inter = new HashSet<>(firstSet);
         inter.retainAll(secondSet);  // Intersection
         System.out.println("Need to deep merge: " + inter);
-        deepMerge(firstFolderIn, secondFolderIn, folderOut, inter, true, parallelism);
+        deepMerge(firstFolderIn, secondFolderIn, folderOut, inter, true, parallelism, dark);
         Instant afterChunkMerge = Instant.now();
         long secondsToDeepMerge = afterChunkMerge.getEpochSecond() - before.getEpochSecond();
         System.out.println("Completed deep merge in: " + (secondsToDeepMerge / 60) + " minutes");
     }
 
-    private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames, boolean first, int parallelism) {
+    private static void deepMerge(Path inp1, Path inp2, Path outp, HashSet<String> rNames, boolean first, int parallelism, boolean dark) {
         final ExecutorService executorService = Executors.newFixedThreadPool(parallelism);
         List<Callable<Object>> tasks = rNames.stream()
-                .map(rName -> Executors.callable(() -> mergeRegion(inp1, inp2, outp, rName, first)))
+                .map(rName -> Executors.callable(() -> mergeRegion(inp1, inp2, outp, rName, first, dark)))
                 .collect(Collectors.toList());
         try {
             executorService.invokeAll(tasks);
@@ -80,7 +86,7 @@ public class XaeroRegionMerger {
         }
     }
 
-    private static void mergeRegion(Path inp1, Path inp2, Path outp, String rName, boolean first) {
+    private static void mergeRegion(Path inp1, Path inp2, Path outp, String rName, boolean first, boolean dark) {
         if (first) { // todo: refactor this scuffed var
             System.out.println("Merging " + rName);
         } else {
@@ -178,14 +184,14 @@ public class XaeroRegionMerger {
                         for (int j = 0; j < 4; ++j) {
                             if (tileProc == Process.A) {
                                 Integer nextTile = in1.readInt();
-                                passChunk(nextTile, in1, out, true, false);  // passChunk handles writing the int
+                                passChunk(nextTile, in1, out, true, false, dark);  // passChunk handles writing the int
                             } else if (tileProc == Process.B) {
                                 Integer nextTile = in2.readInt();
-                                passChunk(nextTile, in2, out, true, true);
+                                passChunk(nextTile, in2, out, true, true, dark);
                             } else {
                                 Integer nextTileA = in1.readInt();
                                 Integer nextTileB = in2.readInt();
-                                passChunk(nextTileA, nextTileB, in1, in2, out);  // Deep merge
+                                passChunkComplex(nextTileA, nextTileB, in1, in2, out, dark);  // Deep merge
                             }
                         }
                     }
@@ -206,7 +212,7 @@ public class XaeroRegionMerger {
         }
     }
 
-    private static void passChunk(Integer nextTile, DataInputStream in, DataOutputStream out, boolean write, boolean darken) throws IOException {
+    private static void passChunk(Integer nextTile, DataInputStream in, DataOutputStream out, boolean write, boolean darken, boolean dark) throws IOException {
         darken = dark && darken;
         if (write) {
             if (darken) {
@@ -251,14 +257,14 @@ public class XaeroRegionMerger {
         return new byte[0];
     }
 
-    private static void passChunk(Integer nextTileA, Integer nextTileB, DataInputStream in1, DataInputStream in2, DataOutputStream out) throws IOException {
+    private static void passChunkComplex(Integer nextTileA, Integer nextTileB, DataInputStream in1, DataInputStream in2, DataOutputStream out, boolean dark) throws IOException {
         if (nextTileA != -1) {  // A gets priority
-            passChunk(nextTileA, in1, out, true, false);
+            passChunk(nextTileA, in1, out, true, false, dark);
             if (nextTileB != -1) {
-                passChunk(nextTileB, in2, out, false, false);
+                passChunk(nextTileB, in2, out, false, false, dark);
             }
         } else if (nextTileB != -1) {
-            passChunk(nextTileB, in2, out, true, true);
+            passChunk(nextTileB, in2, out, true, true, dark);
         } else {
             out.writeInt(-1);  // if both are empty, write -1
         }

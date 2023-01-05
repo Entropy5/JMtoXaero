@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'com.github.entropy5'
-version '2.1'
+version '2.2'
 
 repositories {
     mavenCentral()
@@ -31,7 +31,7 @@ jar {
     }
     manifest {
         attributes "Implementation-Title": "entropy5",
-                "Implementation-Version": "2.1",
+                "Implementation-Version": "2.2",
                 "Main-Class": "com.github.entropy5.XaeroRegionMerger"
     }
 }
