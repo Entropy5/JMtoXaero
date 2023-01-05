@@ -115,6 +115,7 @@ public class JourneyMapToXaero {
     }
 
     private static void processDimension(String input, String output, int dimension) {
+        System.out.println("\n\nProcessing dimension " + dimension + "\n");
         Path folderIn = new File(String.format("%s/DIM%d/", input, dimension)).toPath();
         Path folderOut = new File(String.format("%s/%s/mw$default/", output, (dimension == 0 ? "null" : "DIM" + dimension))).toPath();
 
@@ -197,7 +198,7 @@ public class JourneyMapToXaero {
             String zipName = rx + "_" + rz + ".zip";
             File zipFile = dimPathOut.resolve(zipName).toFile();
             new JourneyMapToXaero().saveRegion(file, zipFile, nether);
-            System.out.println("Converted " + location.toString().split("journeymap")[1] + " to " + zipFile.toString().split("XaeroWorldMap")[1]);
+            System.out.print(zipName + " ");
         }
     }
 
