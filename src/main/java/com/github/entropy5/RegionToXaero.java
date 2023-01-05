@@ -4,12 +4,10 @@ import br.com.gamemods.nbtmanipulator.NbtCompound;
 import br.com.gamemods.nbtmanipulator.NbtList;
 import br.com.gamemods.regionmanipulator.*;
 
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
@@ -21,8 +19,16 @@ public class RegionToXaero {
     public static HashSet<Byte> TRANSPARENT = new HashSet<>(Arrays.asList((byte) 0, (byte) 20, (byte) 102, (byte) 95, (byte) 160, (byte) 31, (byte) 31, (byte) 175, (byte) 166, (byte) 132));
 
     public static void main(String[] args) {
-        Path folderIn = new File("C:\\Users\\mcmic\\Downloads\\in").toPath();
-        Path folderOut = new File("D:\\Program Files\\MultiMC\\instances\\2b\\.minecraft\\XaeroWorldMap\\Multiplayer_masonic.wasteofti.me\\null\\mw$default").toPath();
+
+        if (args.length != 2) {
+            System.out.println("Usage: java -jar RegionToXaero.jar <folder in with mca files> <folder out for xaero zipfiles>");
+            throw new RuntimeException("Incorrect number of arguments");
+        }
+        Path folderIn = new File(args[0]).toPath();
+        Path folderOut = new File(args[1]).toPath();
+
+        System.out.println("Folder in: " + folderIn);
+        System.out.println("Folder out: " + folderOut);
 
         Arrays.stream(Objects.requireNonNull(folderIn.toFile().listFiles()))
                 .forEach(fileIn -> {
@@ -49,7 +55,8 @@ public class RegionToXaero {
             DataOutputStream out = null;
             try {
                 final ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zipFile.toPath())));
-                out = new DataOutputStream(zipOut);
+                final ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+                out = new DataOutputStream(byteOut);
                 final ZipEntry e = new ZipEntry("region.xaero");
                 zipOut.putNextEntry(e);
                 out.write(255);  // mimicking logic from Xaero format
@@ -113,7 +120,9 @@ public class RegionToXaero {
                         }
                     }
                 }
+                zipOut.write(byteOut.toByteArray());
                 zipOut.closeEntry();
+                zipOut.close();
             } finally {
                 if (out != null) {
                     out.close();
