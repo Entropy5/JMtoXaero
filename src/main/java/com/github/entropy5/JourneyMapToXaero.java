@@ -134,6 +134,10 @@ public class JourneyMapToXaero {
         if (dimension == -1) {
             HashMap<String, HashSet<File>> allCaveFiles = new HashMap<>();   // region file -> all cave file locations
             for (File folder : Objects.requireNonNull(folderIn.toFile().listFiles())) {
+                System.out.println("Processing nether folder " + folder.getName());
+                if (!folder.isDirectory()) {
+                    continue;  // skip files like DS_STORE
+                }
                 Arrays.stream(Objects.requireNonNull(folder.listFiles()))
                         .forEach(file -> {
                             String layer = file.getParentFile().getName();  // 0, 1, 2, day, night
