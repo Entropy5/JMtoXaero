@@ -51,5 +51,7 @@ Within the input folder, DIM0 is overworld, DIM1 is end, and DIM-1 is nether. Us
 # FAQ & Support
 
 Newer minecraft versions of journeymap changed the folder structure: see [issue](https://github.com/Entropy5/JMtoXaero/issues/8)
+
 Newer releases of xaeros seem to have changed the world format and caused the [Merger to no longer work](https://github.com/Entropy5/JMtoXaero/issues/9), sorry.
+
 Message me on Discord: `Negative_Entropy#5509`
