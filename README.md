@@ -8,7 +8,7 @@
 
 - Reads images from the Journeymap folder
 - Writes Xaero regions that are relevant for multiplayer maps (Singleplayer maps don't need this conversion, Xaero's mod will just automap everything over time)
-- Confirmed to work with XaerosWorldMap_1.22.0_Forge_1.12.jar
+- Confirmed to work with XaerosWorldMap_1.22.0_Forge_1.12.jar (MC version 1.12.2)
 - Uses the Journeymap colormapping to decode what block likely generated each pixel
 - Visual difference is significant, as Journeymap pixel colors are also affected by height level, shading, transparency, and biomes
 
@@ -48,6 +48,8 @@ Within the input folder, DIM0 is overworld, DIM1 is end, and DIM-1 is nether. Us
 * Xaero World Merger: [JMToXaero/Region-Scripts](https://github.com/Entropy5/JMtoXaero/blob/Region-Scripts/src/main/java/com/github/entropy5/XaeroRegionMerger.java) 
   * Can be used to merge 256k WDL into an existing world. With optional darkening only on tiles from 256K
 
-# Support
+# FAQ & Support
 
+Newer minecraft versions of journeymap changed the folder structure: see [issue](https://github.com/Entropy5/JMtoXaero/issues/8)
+Newer releases of xaeros seem to have changed the world format and caused the [Merger to no longer work](https://github.com/Entropy5/JMtoXaero/issues/9), sorry.
 Message me on Discord: `Negative_Entropy#5509`
