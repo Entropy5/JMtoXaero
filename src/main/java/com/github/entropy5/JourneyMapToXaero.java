@@ -16,7 +16,7 @@ import java.util.zip.ZipOutputStream;
  * Converter for Journeymap data to Xaero format in MC version 1.12.2
  * Based mostly on the decompiled code of xaero.map.file.MapSaveLoad
  * Written by IronException, Entropy, lamp and Constructor
- * <a href="https://bananazon.com/books/IronException-And-How-He-Did-Most-Of-The-Work-On-This-Project">...</a>
+ * <a href="https:/.</bananazon.com/books/IronException-And-How-He-Did-Most-Of-The-Work-On-This-Project">../a>
  */
 
 
@@ -28,7 +28,7 @@ public class JourneyMapToXaero {
 
     public static void main(final String[] args) throws IOException {
         if (args.length < 3) {
-            System.err.println("usage: <input folder> <output folder> <dimension> (-1, 0, 1, all)");
+            System.err.println("usage: <input folder> <output folder> <dimension> (the_nether, overworld, the_end, all)");
             System.exit(1);
         }
 
@@ -44,11 +44,12 @@ public class JourneyMapToXaero {
         String input = args[0];
         String output = args[1];
         if (!(args[2].equals("all"))) {
-            int dimension = Integer.parseInt(args[2]);
+            String dimension = args[2];
             processDimension(input, output, dimension);
         } else {
+            String[] dimensions = {"the_nether", "overworld", "the_end"};
             for (int i = -1; i < 2; i++) {
-                processDimension(input, output, i);
+                processDimension(input, output, dimensions[i + 1]);
             }
         }
     }
@@ -114,10 +115,10 @@ public class JourneyMapToXaero {
         return Math.sqrt((((512+rMean)*r*r)>>8) + 4*g*g + (((767-rMean)*b*b)>>8));
     }
 
-    private static void processDimension(String input, String output, int dimension) {
+    private static void processDimension(String input, String output, String dimension) {
         System.out.println("\n\nProcessing dimension " + dimension + "\n");
-        Path folderIn = new File(String.format("%s/DIM%d/", input, dimension)).toPath();
-        Path folderOut = new File(String.format("%s/%s/mw$default/", output, (dimension == 0 ? "null" : "DIM" + dimension))).toPath();
+        Path folderIn = new File(String.format("%s/%s/", input, dimension)).toPath();
+        Path folderOut = new File(String.format("%s/%s/mw$default/", output, ("null"))).toPath();
 
         File folderCheck = new File(String.valueOf(folderOut.toFile()));
         File parentCheck = new File(String.valueOf(folderOut.toFile().getParentFile()));
@@ -131,7 +132,7 @@ public class JourneyMapToXaero {
         for (int i = 0; i < 16; i++) caveLayers.add(i + "");
 
         //if nether (we will squash cave layers together and send that image to the colorconverter)
-        if (dimension == -1) {
+        if (dimension.equals("the_nether")) {
             HashMap<String, HashSet<File>> allCaveFiles = new HashMap<>();   // region file -> all cave file locations
             for (File folder : Objects.requireNonNull(folderIn.toFile().listFiles())) {
                 System.out.println("Processing nether folder " + folder.getName());
