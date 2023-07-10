@@ -16,9 +16,9 @@
 
 Download the latest jar from releases  ([video guide](https://www.youtube.com/watch?v=-SiCD_DgfHE))
 
-`java -jar JMtoXaero-2.1.jar <input folder> <output folder> <dimension> (-1, 0, 1, all)`
+`java -jar JMtoXaero-3.0.jar <input folder> <output folder> <dimension> (the_nether, overworld, the_end, all)`
 
-Input folder should point to your journeymap singleplayer or multiplayer data folder, where DIM0 etc resides.
+Input folder should point to your journeymap singleplayer or multiplayer data folder, where overworld etc resides.
 
 Example input:
 `C:/appdata/.minecraft/journeymap/data/sp/2b2t_256k²_spawn_download/`
@@ -28,12 +28,12 @@ Output folder should point to your XaeroWorldMap folder + server or singleplayer
 Example output:
 `C:/appdata/.minecraft/XaeroWorldMap/Multiplayer_connect.2b2t.org/`
 
-Within the input folder, DIM0 is overworld, DIM1 is end, and DIM-1 is nether. Use the last argument to select a dimension or 'all' to process them all.
+Use the last argument to select a dimension or 'all' to process them all.
 
 
 # Full command example
 
-`java -jar JMtoXaero-2.1.jar "C:\appdata\.minecraft\journeymap\data\mp\2b2t" "C:\appdata\.minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
+`java -jar JMtoXaero-3.0.jar "C:\appdata\.minecraft\journeymap\data\mp\2b2t" "C:\appdata\.minecraft\XaeroWorldMap\Multiplayer_2b2t.org" all`
 
 **Used journeymap with a resourcepack other than vanilla?**
 [Read here](./MAPPINGS.md)
@@ -49,8 +49,6 @@ Within the input folder, DIM0 is overworld, DIM1 is end, and DIM-1 is nether. Us
   * Can be used to merge 256k WDL into an existing world. With optional darkening only on tiles from 256K
 
 # FAQ & Support
-
-Newer minecraft versions of journeymap changed the folder structure: see [issue](https://github.com/Entropy5/JMtoXaero/issues/8)
 
 Newer releases of xaeros seem to have changed the world format and caused the [Merger to no longer work](https://github.com/Entropy5/JMtoXaero/issues/9), sorry.
 
