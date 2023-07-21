@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'com.github.entropy5'
-version '2.2'
+version '2.3'
 
 repositories {
     mavenCentral()
@@ -12,7 +12,7 @@ repositories {
 jar {
     manifest {
         attributes "Implementation-Title": "entropy5",
-                "Implementation-Version": "2.2",
+                "Implementation-Version": "2.3",
                 "Main-Class": "com.github.entropy5.JourneyMapToXaero"
     }
 }

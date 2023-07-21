@@ -5,7 +5,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
@@ -25,10 +24,11 @@ public class JourneyMapToXaero {
     public static final HashSet<Integer> LEAVES = new HashSet<>(Arrays.asList(161, 49170, 24594, 32929, 8210, 18, 57362, 53409, 4257, 16402, 20641, 49313, 32786, 37025, 16545, 40978));
     public static final HashMap<Integer, Integer> COLOR_TO_STATE = new HashMap<>(); // THIS HAS TO BE color -> state
     public static final HashMap<Integer, Integer> CLOSEST_COLOR = new HashMap<>();  // to cache results
+    static final String[] dimensions = {"the_nether", "overworld", "the_end"};
 
     public static void main(final String[] args) throws IOException {
         if (args.length < 3) {
-            System.err.println("usage: <input folder> <output folder> <dimension> (-1, 0, 1, all)");
+            System.err.println("usage: <input folder> <output folder> <dimension> (the_nether, overworld, the_end, all)");
             System.exit(1);
         }
 
@@ -43,8 +43,20 @@ public class JourneyMapToXaero {
 
         String input = args[0];
         String output = args[1];
-        if (!(args[2].equals("all"))) {
-            int dimension = Integer.parseInt(args[2]);
+        args[2] = args[2].trim().toLowerCase();
+        if (!(args[2].equalsIgnoreCase("all"))) {
+            int dimension;
+
+            //allow both dimension names and numbers for backwards compatibility
+            try {
+                dimension = Integer.parseInt(args[2]);
+            } catch (NumberFormatException e) {
+                for(dimension = -1; dimension<3; dimension++){
+                    if (dimensions[dimension + 1].contains(args[2])) break;
+                    if (dimension == 2) throw new IllegalArgumentException("Dimension doesn't exist.");
+                }
+            }
+
             processDimension(input, output, dimension);
         } else {
             for (int i = -1; i < 2; i++) {
@@ -114,26 +126,32 @@ public class JourneyMapToXaero {
         return Math.sqrt((((512+rMean)*r*r)>>8) + 4*g*g + (((767-rMean)*b*b)>>8));
     }
 
-    private static void processDimension(String input, String output, int dimension) {
-        System.out.println("\n\nProcessing dimension " + dimension + "\n");
-        Path folderIn = new File(String.format("%s/DIM%d/", input, dimension)).toPath();
-        Path folderOut = new File(String.format("%s/%s/mw$default/", output, (dimension == 0 ? "null" : "DIM" + dimension))).toPath();
+    private static void processDimension(String input, String output, int dimension) throws IOException {
+        System.out.println("\n\nProcessing dimension: " + dimensions[dimension+1] + "\n");
 
-        File folderCheck = new File(String.valueOf(folderOut.toFile()));
-        File parentCheck = new File(String.valueOf(folderOut.toFile().getParentFile()));
-        if (!parentCheck.exists()) {
-            parentCheck.mkdir();
-            folderCheck.mkdir();
-        } else if (!folderCheck.exists()) {
-            folderCheck.mkdir();
+        String newInStructure = String.format("%s/%s/", input, dimensions[dimension+1]);
+        String oldInStructure = String.format("%s/DIM%d/", input, dimension);
+
+        File folderIn = new File(newInStructure);
+        if(!folderIn.exists()) folderIn = new File (oldInStructure); // check and adjust folder structure for backwards compatibility
+        if(!folderIn.exists()) throw new IOException("input folder doesn't exist");
+
+        File folderOut = new File(String.format("%s/%s/mw$default/", output, (dimension == 0 ? "null" : "DIM" + dimension)));
+
+        File folderCheck = new File(String.valueOf(folderOut));
+        File parentCheck = new File(String.valueOf(folderOut.getParentFile()));
+
+        if( !((parentCheck.exists() || parentCheck.mkdir()) && (folderCheck.exists() || folderCheck.mkdir())) ){
+                throw new IOException("output folder does not exist and can't be made");
         }
+
         List<String> caveLayers = new ArrayList<>();
         for (int i = 0; i < 16; i++) caveLayers.add(i + "");
 
         //if nether (we will squash cave layers together and send that image to the colorconverter)
         if (dimension == -1) {
             HashMap<String, HashSet<File>> allCaveFiles = new HashMap<>();   // region file -> all cave file locations
-            for (File folder : Objects.requireNonNull(folderIn.toFile().listFiles())) {
+            for (File folder : Objects.requireNonNull(folderIn.listFiles())) {
                 System.out.println("Processing nether folder " + folder.getName());
                 if (!folder.isDirectory()) {
                     continue;  // skip files like DS_STORE
@@ -178,8 +196,8 @@ public class JourneyMapToXaero {
         }
 
         // OverWorld and End (normal conversion, caves are ignored)
-        folderIn = folderIn.resolve("day");
-        Arrays.stream(Objects.requireNonNull(folderIn.toFile().listFiles())).parallel()
+        folderIn = folderIn.toPath().resolve("day").toFile();
+        Arrays.stream(Objects.requireNonNull(folderIn.listFiles())).parallel()
                 .filter(File::isFile)
                 .forEach(file -> {
                     String[] parts = file.getName().split("[.,]");
@@ -194,13 +212,13 @@ public class JourneyMapToXaero {
                 });
     }
 
-    private static void processRegion(boolean nether, Path dimPathOut, BufferedImage file, String[] parts, File location) {
+    private static void processRegion(boolean nether, File dimPathOut, BufferedImage file, String[] parts, File location) {
         if (parts.length == 3 && parts[2].equals("png")) {
             //TODO: this should be a thread worker instead. otherwise it will be very laggy (similar thing to mc multiplayer or tab)
             int rx = Integer.parseInt(parts[0]);
             int rz = Integer.parseInt(parts[1]);
             String zipName = rx + "_" + rz + ".zip";
-            File zipFile = dimPathOut.resolve(zipName).toFile();
+            File zipFile = dimPathOut.toPath().resolve(zipName).toFile();
             new JourneyMapToXaero().saveRegion(file, zipFile, nether);
             System.out.print(zipName + " ");
         }
