@@ -52,4 +52,8 @@ Use the last argument to select a dimension or 'all' to process them all.
 
 Newer releases of xaeros seem to have changed the world format and caused the [Merger to no longer work](https://github.com/Entropy5/JMtoXaero/issues/9), sorry.
 
+* JMtoXaero generates 'old' xaero format, compatible with newer versions
+* RegiontoXaero is designed for conversion of 1.12 terrain to 'old' xaero format, compatible with newer versions
+* XaeroRegionMerger can only merge 'old' xaero formats (newly made JMtoXaero, newly made RegiontoXaero, pregenerated 256k files)
+
 Message me on Discord: `Negative_Entropy#5509`
